@@ -72,7 +72,7 @@ def _client(max_retries: int = 2):
 
 def test_success_returns_typed_data():
     client, _ = _client()
-    ip = client.vector_scan.ip("8.8.8.8")
+    ip = client.vector_snap.ip("8.8.8.8")
     assert ip.as_owner == "GOOGLE"
     assert ip.ip == "8.8.8.8"
     assert ip.tags == ["dns"]
@@ -81,20 +81,20 @@ def test_success_returns_typed_data():
 def test_not_found_raises():
     client, _ = _client()
     with pytest.raises(NotFoundError):
-        client.vector_scan.domain("nope.example")
+        client.vector_snap.domain("nope.example")
 
 
 def test_quota_exceeded_raises():
     client, _ = _client()
     with pytest.raises(QuotaExceededError) as exc:
-        client.vector_scan.hash("deadbeef")
+        client.vector_snap.hash("deadbeef")
     assert exc.value.status_code == 402
     assert exc.value.request_id == "req_err"
 
 
 def test_retry_then_success():
     client, state = _client(max_retries=2)
-    res = client.vector_scan.url("https://x.com")
+    res = client.vector_snap.url("https://x.com")
     assert res.url == "https://x.com"
     assert state["url_calls"] == 2  # one 429, then a retry that succeeded
 
@@ -102,7 +102,7 @@ def test_retry_then_success():
 def test_rate_limit_exhausted_raises():
     client, _ = _client(max_retries=0)  # no retries -> the 429 surfaces
     with pytest.raises(RateLimitError) as exc:
-        client.vector_scan.url("https://x.com")
+        client.vector_snap.url("https://x.com")
     assert exc.value.retry_after == 0.0
 
 
@@ -116,7 +116,7 @@ def test_pagination_iterates_all_pages():
 
 def test_raw_response():
     client, _ = _client()
-    raw = client.vector_scan.ip("8.8.8.8", raw_response=True)
+    raw = client.vector_snap.ip("8.8.8.8", raw_response=True)
     assert raw.status_code == 200
     assert raw.request_id == "req_ok"
     assert raw.data.as_owner == "GOOGLE"
@@ -125,13 +125,13 @@ def test_raw_response():
 def test_module_level_singleton():
     handler, _ = _make_handler()
     crawlsnap.init(api_key="sk-cs-test", max_retries=0, transport=httpx.MockTransport(handler))
-    assert crawlsnap.vector_scan.ip("8.8.8.8").as_owner == "GOOGLE"
+    assert crawlsnap.vector_snap.ip("8.8.8.8").as_owner == "GOOGLE"
 
 
 def test_uninitialized_raises(monkeypatch):
     monkeypatch.setattr(crawlsnap, "_default_client", None)
     with pytest.raises(CrawlSnapError):
-        _ = crawlsnap.vector_scan
+        _ = crawlsnap.vector_snap
 
 
 def test_missing_api_key_raises(monkeypatch):

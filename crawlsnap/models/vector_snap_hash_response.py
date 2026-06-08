@@ -3,7 +3,7 @@
 """
     CrawlSnap API
 
-    The CrawlSnap API provides on-demand threat-intelligence enrichment for indicators of compromise (IoCs). Submit a URL, file hash, IPv4 address, or domain and receive structured enrichment from multiple upstream sources:    - **vector-scan** — VirusTotal-derived reputation, detections, and     relationships for url / hash / ip / domain.   - **pulse-snap** — AlienVault OTX pulse (and sandbox) enrichment for     url / hash / ip / domain.   - **subdo-snap** — paginated subdomain enumeration for a domain.  ## Authentication  Authenticate every request with your CrawlSnap API key, sent as a Bearer token in the `Authorization` header:      Authorization: Bearer sk-cs-...  Create and rotate keys from your dashboard. Treat the key like a password: it carries your full quota and must stay secret. Never embed it in client-side code or commit it to source control.  ## Response envelope  Every response — success or error — uses the same envelope:  ```json {   \"data\": { ... },          // payload on success, null on failure   \"is_success\": true,        // authoritative success flag   \"message\": \"Success\",     // human-readable summary   \"response_code\": 200       // mirrors the HTTP status code } ```  Always check `is_success` before reading `data`.  ## Status codes  HTTP status codes follow standard REST semantics; the body `response_code` mirrors the HTTP status.    - **200** — success, `data` populated.   - **400** — invalid input (malformed URL / hash / IP / domain).   - **401** — missing or invalid API key.   - **402** — out of credits, or monthly quota exceeded.   - **403** — subscription is not active.   - **404** — no IoC data found for the supplied indicator.   - **429** — daily request limit exceeded.   - **5xx** — server error, or the upstream enrichment service was     unavailable / timed out. 
+    The CrawlSnap API provides on-demand threat-intelligence enrichment for indicators of compromise (IoCs). Submit a URL, file hash, IPv4 address, or domain and receive structured, aggregated enrichment:    - **VectorSnap** — reputation, detections, categories, and relationships     for url / hash / ip / domain.   - **PulseSnap** — threat-intelligence pulse (and sandbox) enrichment for     url / hash / ip / domain.   - **SubdoSnap** — paginated subdomain enumeration for a domain.  ## Authentication  Authenticate every request with your CrawlSnap API key, sent as a Bearer token in the `Authorization` header:      Authorization: Bearer sk-cs-...  Create and rotate keys from your dashboard. Treat the key like a password: it carries your full quota and must stay secret. Never embed it in client-side code or commit it to source control.  ## Response envelope  Every response — success or error — uses the same envelope:  ```json {   \"data\": { ... },          // payload on success, null on failure   \"is_success\": true,        // authoritative success flag   \"message\": \"Success\",     // human-readable summary   \"response_code\": 200       // mirrors the HTTP status code } ```  Always check `is_success` before reading `data`.  ## Status codes  HTTP status codes follow standard REST semantics; the body `response_code` mirrors the HTTP status.    - **200** — success, `data` populated.   - **400** — invalid input (malformed URL / hash / IP / domain).   - **401** — missing or invalid API key.   - **402** — out of credits, or monthly quota exceeded.   - **403** — subscription is not active.   - **404** — no IoC data found for the supplied indicator.   - **429** — daily request limit exceeded.   - **5xx** — server error, or the upstream enrichment service was     unavailable / timed out. 
 
     The version of the OpenAPI document: 1.0.0
     Contact: support@crawlsnap.com
@@ -20,16 +20,16 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from crawlsnap.models.ioc_domain_scan_data import IocDomainScanData
+from crawlsnap.models.ioc_hash_scan_data import IocHashScanData
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class VectorScanDomainResponse(BaseModel):
+class VectorSnapHashResponse(BaseModel):
     """
-    VectorScanDomainResponse
+    VectorSnapHashResponse
     """ # noqa: E501
-    data: Optional[IocDomainScanData] = None
+    data: Optional[IocHashScanData] = None
     is_success: StrictBool = Field(description="True only when `data` contains usable enrichment.")
     message: StrictStr = Field(description="Human-readable summary of the outcome.")
     response_code: StrictInt = Field(description="Mirrors the HTTP status code.")
@@ -53,7 +53,7 @@ class VectorScanDomainResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of VectorScanDomainResponse from a JSON string"""
+        """Create an instance of VectorSnapHashResponse from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -81,7 +81,7 @@ class VectorScanDomainResponse(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of VectorScanDomainResponse from a dict"""
+        """Create an instance of VectorSnapHashResponse from a dict"""
         if obj is None:
             return None
 
@@ -89,7 +89,7 @@ class VectorScanDomainResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "data": IocDomainScanData.from_dict(obj["data"]) if obj.get("data") is not None else None,
+            "data": IocHashScanData.from_dict(obj["data"]) if obj.get("data") is not None else None,
             "is_success": obj.get("is_success"),
             "message": obj.get("message"),
             "response_code": obj.get("response_code")

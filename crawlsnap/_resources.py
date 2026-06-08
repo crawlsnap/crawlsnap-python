@@ -1,4 +1,4 @@
-"""Resource groups exposed on the client: ``vector_scan``, ``pulse_snap``,
+"""Resource groups exposed on the client: ``vector_snap``, ``pulse_snap``,
 ``subdo_snap``. Each method submits one indicator and returns the typed
 enrichment payload (the unwrapped ``data``), or raises a typed exception.
 """
@@ -26,8 +26,8 @@ class _Resource:
         self._client = client
 
 
-class VectorScan(_Resource):
-    """VirusTotal-derived IoC enrichment for url, hash, ip, domain."""
+class VectorSnap(_Resource):
+    """IoC reputation enrichment for url, hash, ip, domain."""
 
     _PREFIX = "/v1/ioc/search"
 
@@ -53,7 +53,7 @@ class VectorScan(_Resource):
 
 
 class PulseSnap(_Resource):
-    """AlienVault OTX pulse enrichment for url, hash, ip, domain."""
+    """Threat-intelligence pulse enrichment for url, hash, ip, domain."""
 
     _PREFIX = "/v1/pulse-snap/scan"
 

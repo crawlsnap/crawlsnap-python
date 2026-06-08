@@ -3,7 +3,7 @@
 ``CrawlSnap`` owns an :class:`httpx.Client`, applies Bearer auth, retries
 transient failures with exponential backoff, unwraps the ``BaseResponse``
 envelope, and raises typed exceptions. Resource groups are exposed as
-attributes: ``client.vector_scan``, ``client.pulse_snap``, ``client.subdo_snap``.
+attributes: ``client.vector_snap``, ``client.pulse_snap``, ``client.subdo_snap``.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ from ._exceptions import (
     ServerError,
     SubscriptionInactiveError,
 )
-from ._resources import PulseSnap, SubdoSnap, VectorScan
+from ._resources import PulseSnap, SubdoSnap, VectorSnap
 from ._version import __version__
 
 DEFAULT_BASE_URL = "https://api.crawlsnap.com"
@@ -122,7 +122,7 @@ class CrawlSnap:
             )
             self._owns_client = True
 
-        self.vector_scan = VectorScan(self)
+        self.vector_snap = VectorSnap(self)
         self.pulse_snap = PulseSnap(self)
         self.subdo_snap = SubdoSnap(self)
 

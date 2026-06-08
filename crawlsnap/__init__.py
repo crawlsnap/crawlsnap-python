@@ -5,7 +5,7 @@ Quick start (module-level singleton)::
     import crawlsnap
 
     crawlsnap.init(api_key="sk-cs-...")          # or set CRAWLSNAP_API_KEY
-    ip = crawlsnap.vector_scan.ip("8.8.8.8")
+    ip = crawlsnap.vector_snap.ip("8.8.8.8")
     print(ip.reputation, ip.as_owner)
 
 Advanced (own client instance — multi-key / thread-safe)::
@@ -13,7 +13,7 @@ Advanced (own client instance — multi-key / thread-safe)::
     from crawlsnap import CrawlSnap
 
     client = CrawlSnap(api_key="sk-cs-...", timeout=30, max_retries=3)
-    client.vector_scan.domain("example.com")
+    client.vector_snap.domain("example.com")
 """
 
 from __future__ import annotations
@@ -50,7 +50,7 @@ from crawlsnap.models.subdo_snap_scan_data import SubdoSnapScanData
 _default_client: Optional[CrawlSnap] = None
 
 # Resource names resolved lazily against the singleton (see __getattr__).
-_RESOURCE_NAMES = ("vector_scan", "pulse_snap", "subdo_snap")
+_RESOURCE_NAMES = ("vector_snap", "pulse_snap", "subdo_snap")
 
 
 def init(api_key: Optional[str] = None, **kwargs: Any) -> CrawlSnap:
@@ -76,7 +76,7 @@ def get_client() -> CrawlSnap:
 
 
 def __getattr__(name: str) -> Any:
-    # PEP 562: resolve crawlsnap.vector_scan / .pulse_snap / .subdo_snap to the
+    # PEP 562: resolve crawlsnap.vector_snap / .pulse_snap / .subdo_snap to the
     # singleton's resources at access time, with a friendly error if uninitialized.
     if name in _RESOURCE_NAMES:
         return getattr(get_client(), name)

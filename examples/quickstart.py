@@ -11,25 +11,25 @@ from crawlsnap import CrawlSnapError, NotFoundError, QuotaExceededError, RateLim
 
 crawlsnap.init(api_key=os.environ["CRAWLSNAP_API_KEY"])
 
-# 1. IP reputation (VirusTotal-derived)
-ip = crawlsnap.vector_scan.ip("8.8.8.8")
+# 1. IP reputation enrichment
+ip = crawlsnap.vector_snap.ip("8.8.8.8")
 print(f"8.8.8.8        -> {ip.as_owner} ({ip.country}), reputation {ip.reputation}")
 
-# 2. Domain
-domain = crawlsnap.vector_scan.domain("google.com")
+# 2. Domain 
+domain = crawlsnap.vector_snap.domain("google.com")
 print(f"google.com     -> registrar={domain.registrar}, reputation={domain.reputation}")
 
 # 3. File hash (EICAR test file)
-sample = crawlsnap.vector_scan.hash("44d88612fea8a8f36de82e1278abb02f")
+sample = crawlsnap.vector_snap.hash("44d88612fea8a8f36de82e1278abb02f")
 print(f"eicar hash     -> {sample.meaningful_name} / {sample.type_description}")
 
-# 4. OTX pulse enrichment
+# 4. Threat-intelligence pulse enrichment
 pulse = crawlsnap.pulse_snap.ip("8.8.8.8")
-print(f"otx pulse      -> {pulse.pulse_detail}")
+print(f"pulse          -> {pulse.pulse_detail}")
 
 # 5. Error handling — failures raise typed exceptions
 try:
-    crawlsnap.vector_scan.domain("nonexistent-xyz.invalid")
+    crawlsnap.vector_snap.domain("nonexistent-xyz.invalid")
 except NotFoundError:
     print("lookup miss    -> no data for that indicator")
 except QuotaExceededError as e:

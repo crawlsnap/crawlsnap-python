@@ -3,49 +3,74 @@
 Official Python SDK for the [CrawlSnap](https://crawlsnap.com) threat-intelligence
 API — on-demand IoC enrichment for URLs, file hashes, IPv4 addresses, and domains.
 
-## Install
+- Idiomatic, fully typed client (httpx + pydantic v2)
+- `crawlsnap.init(...)` singleton **or** an explicit `CrawlSnap` client
+- Resource namespacing: `crawlsnap.vector_snap.ip(...)`
+- Returns typed data; raises typed exceptions — no envelope bookkeeping
+- Built-in retries with exponential backoff, configurable timeout, auto-pagination
+
+---
+
+## Installation
 
 ```bash
 pip install crawlsnap
 ```
 
-## Quick start
+Requires Python 3.8+.
 
-Initialize once, then call the resources directly:
+## Authentication
+
+Get an API key (`sk-cs-...`) from your CrawlSnap dashboard. Provide it either
+via the environment or explicitly:
+
+```bash
+export CRAWLSNAP_API_KEY=sk-cs-...
+```
+
+```python
+crawlsnap.init()                       # reads CRAWLSNAP_API_KEY
+crawlsnap.init(api_key="sk-cs-...")    # or pass it explicitly
+```
+
+The key is sent as `Authorization: Bearer sk-cs-...`. Treat it like a password.
+
+## Quick start
 
 ```python
 import crawlsnap
 
-crawlsnap.init(api_key="sk-cs-...")          # or export CRAWLSNAP_API_KEY=sk-cs-...
+crawlsnap.init(api_key="sk-cs-...")
 
-ip = crawlsnap.vector_scan.ip("8.8.8.8")
+ip = crawlsnap.vector_snap.ip("8.8.8.8")
 print(ip.reputation, ip.as_owner, ip.country)
 ```
 
 Each call returns the typed enrichment payload directly, and raises a typed
-exception on failure — no envelope/`is_success` checks needed.
+exception on failure — you never inspect an `is_success` envelope yourself.
 
-## The three families
+## Resources
+
+| Resource | Methods | Returns |
+|----------|---------|---------|
+| `vector_snap` | `url` · `hash` · `ip` · `domain` | reputation, detections, categories, relationships |
+| `pulse_snap`  | `url` · `hash` · `ip` · `domain` | threat-intelligence pulse (and sandbox) summary |
+| `subdo_snap`  | `scan` · `scan_iter` | enumerated subdomains (paginated) |
 
 ```python
-url    = crawlsnap.vector_scan.url("https://example.com")
-file   = crawlsnap.vector_scan.hash("44d88612fea8a8f36de82e1278abb02f")
-domain = crawlsnap.vector_scan.domain("google.com")
+url    = crawlsnap.vector_snap.url("https://example.com")
+file   = crawlsnap.vector_snap.hash("44d88612fea8a8f36de82e1278abb02f")
+domain = crawlsnap.vector_snap.domain("google.com")
 
-pulse  = crawlsnap.pulse_snap.ip("45.83.122.10")
-
-# subdomain enumeration (paginated)
-for subdomain in crawlsnap.subdo_snap.scan_iter("example.com"):
-    print(subdomain)
+pulse  = crawlsnap.pulse_snap.ip("8.8.8.8")
 ```
 
-| Resource | Methods | Source |
-|----------|---------|--------|
-| `vector_scan` | `url` · `hash` · `ip` · `domain` | VirusTotal |
-| `pulse_snap`  | `url` · `hash` · `ip` · `domain` | AlienVault OTX |
-| `subdo_snap`  | `scan` · `scan_iter` | subdomain enumeration |
+Every method takes the indicator as the first positional argument and accepts
+`raw_response=True` (see below).
 
 ## Error handling
+
+Failures raise a typed exception instead of returning an error envelope:
 
 ```python
 from crawlsnap import (
@@ -54,7 +79,7 @@ from crawlsnap import (
 )
 
 try:
-    res = crawlsnap.vector_scan.domain("example.com")
+    res = crawlsnap.vector_snap.domain("example.com")
 except NotFoundError:
     ...                              # 404 — no data for this indicator
 except QuotaExceededError as e:
@@ -67,20 +92,39 @@ except CrawlSnapError as e:          # base class for every SDK error
     print(e)
 ```
 
-| HTTP | Exception |
-|------|-----------|
-| 400 | `BadRequestError` |
-| 401 | `AuthenticationError` |
-| 402 | `QuotaExceededError` |
-| 403 | `SubscriptionInactiveError` |
-| 404 | `NotFoundError` |
-| 429 | `RateLimitError` (`.retry_after`) |
-| 5xx | `ServerError` |
-| network / timeout | `APIConnectionError` / `APITimeoutError` |
+| HTTP | Exception | Notes |
+|------|-----------|-------|
+| 400 | `BadRequestError` | invalid indicator |
+| 401 | `AuthenticationError` | missing / invalid key |
+| 402 | `QuotaExceededError` | out of credits or monthly quota |
+| 403 | `SubscriptionInactiveError` | subscription not active |
+| 404 | `NotFoundError` | no data for the indicator |
+| 429 | `RateLimitError` | daily limit; `.retry_after` (seconds) |
+| 5xx | `ServerError` | server / upstream failure |
+| — | `APIConnectionError` / `APITimeoutError` | network failure / client timeout |
 
-All status errors carry `.status_code`, `.message`, and `.request_id`.
+Every status error carries `.status_code`, `.message`, and `.request_id`
+(share the request id with support to speed up debugging).
 
-## Advanced — your own client
+## Pagination
+
+`subdo_snap` is paginated. Stream every subdomain across all pages — the cursor
+is handled for you:
+
+```python
+for subdomain in crawlsnap.subdo_snap.scan_iter("example.com"):
+    print(subdomain)
+```
+
+Or page manually:
+
+```python
+page = crawlsnap.subdo_snap.scan("example.com")
+while page.cursor:
+    page = crawlsnap.subdo_snap.scan("example.com", cursor=page.cursor)
+```
+
+## Configuration
 
 The singleton is a thin layer over the `CrawlSnap` client. For multiple keys,
 multiple environments, or thread isolation, instantiate it directly:
@@ -91,22 +135,30 @@ from crawlsnap import CrawlSnap
 client = CrawlSnap(
     api_key="sk-cs-...",
     timeout=30.0,
-    max_retries=3,          # exponential backoff on 429 / 5xx / connection errors
+    max_retries=3,
     base_url="https://api.crawlsnap.com",
 )
-ip = client.vector_scan.ip("1.1.1.1")
+ip = client.vector_snap.ip("1.1.1.1")
 client.close()
 ```
 
-Retries (429/5xx, honoring `Retry-After`) and a 30s timeout are on by default.
+| Option | Default | Description |
+|--------|---------|-------------|
+| `api_key` | `$CRAWLSNAP_API_KEY` | Your `sk-cs-` key |
+| `base_url` | `$CRAWLSNAP_BASE_URL` or `https://api.crawlsnap.com` | API host override |
+| `timeout` | `30.0` | Per-request timeout (seconds) |
+| `max_retries` | `2` | Retries for 429 / 5xx / connection errors |
+
+Retries use exponential backoff and honor the `Retry-After` header on 429.
 
 ### Raw response
 
-Pass `raw_response=True` to get the full envelope (status, headers, request id):
+Pass `raw_response=True` to get the full envelope (status, headers, request id)
+instead of just the data:
 
 ```python
-raw = crawlsnap.vector_scan.ip("8.8.8.8", raw_response=True)
-print(raw.status_code, raw.request_id, raw.data)
+raw = crawlsnap.vector_snap.ip("8.8.8.8", raw_response=True)
+print(raw.status_code, raw.request_id, raw.is_success, raw.data)
 ```
 
 ## Development
