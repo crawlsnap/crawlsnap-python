@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "crawlsnap"
-description = "Official Python SDK for the CrawlSnap threat-intelligence API"
+description = "Official Python SDK for CrawlSnap — the data intelligence API platform"
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MIT" }
 authors = [{ name = "CrawlSnap", email = "support@crawlsnap.com" }]
-keywords = ["crawlsnap", "threat-intelligence", "ioc", "security", "sdk"]
+keywords = ["crawlsnap", "data-intelligence", "sdk", "api-client", "ioc", "security"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",

@@ -1,4 +1,4 @@
-"""CrawlSnap — official Python SDK for the CrawlSnap threat-intelligence API.
+"""CrawlSnap — official Python SDK for the CrawlSnap data intelligence platform.
 
 Quick start (module-level singleton)::
 

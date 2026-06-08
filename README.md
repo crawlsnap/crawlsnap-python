@@ -1,7 +1,9 @@
 # crawlsnap
 
-Official Python SDK for the [CrawlSnap](https://crawlsnap.com) threat-intelligence
-API — on-demand IoC enrichment for URLs, file hashes, IPv4 addresses, and domains.
+Official Python SDK for [CrawlSnap](https://crawlsnap.com) — a data intelligence
+platform that delivers structured, on-demand data through fast, typed APIs.
+Authenticate once and call any CrawlSnap data product, with first-class types,
+automatic retries, and pagination built in.
 
 - Idiomatic, fully typed client (httpx + pydantic v2)
 - `crawlsnap.init(...)` singleton **or** an explicit `CrawlSnap` client
