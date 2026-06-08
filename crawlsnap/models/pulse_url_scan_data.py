@@ -30,7 +30,7 @@ class PulseUrlScanData(BaseModel):
     """ # noqa: E501
     crawlsnap_hash_id: StrictStr = Field(description="SHA-256 of the queried URL.")
     search_type: StrictStr
-    pulse_detail: Optional[Dict[str, Any]] = Field(default=None, description="Threat-intelligence pulse summary. Inner shape evolves upstream; kept free-form on purpose (see phase-2 plan Decision #5). ")
+    pulse_detail: Optional[Dict[str, Any]] = Field(default=None, description="Threat-intelligence pulse summary. Inner shape evolves upstream and is intentionally free-form. ")
     __properties: ClassVar[List[str]] = ["crawlsnap_hash_id", "search_type", "pulse_detail"]
 
     @field_validator('search_type')
