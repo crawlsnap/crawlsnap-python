@@ -8,6 +8,7 @@ automatic retries, and pagination built in.
 - Idiomatic, fully typed client (httpx + pydantic v2)
 - `crawlsnap.init(...)` singleton **or** an explicit `CrawlSnap` client
 - Resource namespacing: `crawlsnap.vector_snap.ip(...)`
+- Per-API version pinning: stay on `vector_snap.v1` while other products track latest
 - Returns typed data; raises typed exceptions — no envelope bookkeeping
 - Built-in retries with exponential backoff, configurable timeout, auto-pagination
 
@@ -69,6 +70,29 @@ pulse  = crawlsnap.pulse_snap.ip("8.8.8.8")
 
 Every method takes the indicator as the first positional argument and accepts
 `raw_response=True` (see below).
+
+## API versioning
+
+Each CrawlSnap data product is versioned **independently**. Calling a resource
+method directly always targets that product's **latest** API version:
+
+```python
+crawlsnap.vector_snap.ip("8.8.8.8")        # latest VectorSnap
+```
+
+When a product ships a new API version, you don't have to pin the whole SDK (or
+hold back every other product) to keep your current behavior. Pin just the one
+you care about via its version namespace — everything else stays on latest:
+
+```python
+crawlsnap.vector_snap.v1.ip("8.8.8.8")     # explicitly VectorSnap v1
+crawlsnap.pulse_snap.url("https://x.com")  # still latest PulseSnap
+```
+
+The same applies on an explicit client (`client.vector_snap.v1.ip(...)`). Pinned
+namespaces (`.v1`, and future `.v2`, …) are typed, so your IDE and type checker
+see the exact payload shape for that version. Upgrade at your own pace: switch a
+call from `.v1` to the default (or `.v2`) when you're ready.
 
 ## Error handling
 

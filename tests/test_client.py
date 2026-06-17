@@ -78,6 +78,14 @@ def test_success_returns_typed_data():
     assert ip.tags == ["dns"]
 
 
+def test_pinned_version_hits_same_endpoint_and_is_cached():
+    client, _ = _client()
+    # Pinning a single product's API version returns the typed payload just
+    # like the default (latest) accessor, and the pinned instance is cached.
+    assert client.vector_snap.v1.ip("8.8.8.8").as_owner == "GOOGLE"
+    assert client.vector_snap.v1 is client.vector_snap.v1
+
+
 def test_not_found_raises():
     client, _ = _client()
     with pytest.raises(NotFoundError):
