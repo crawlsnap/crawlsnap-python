@@ -14,13 +14,26 @@ Advanced (own client instance — multi-key / thread-safe)::
 
     client = CrawlSnap(api_key="sk-cs-...", timeout=30, max_retries=3)
     client.vector_snap.domain("example.com")
+
+Async (awaitable twin, same surface)::
+
+    import asyncio
+    from crawlsnap import AsyncCrawlSnap
+
+    async def main():
+        async with AsyncCrawlSnap(api_key="sk-cs-...") as client:
+            ip = await client.vector_snap.ip("8.8.8.8")
+
+    asyncio.run(main())
 """
 
 from __future__ import annotations
 
 from typing import Any, Optional
 
-from ._client import CrawlSnap, RawResponse
+from ._async_client import AsyncCrawlSnap
+from ._base import RawResponse
+from ._client import CrawlSnap
 from ._exceptions import (
     APIConnectionError,
     APIStatusError,
@@ -87,6 +100,7 @@ __all__ = [
     "init",
     "get_client",
     "CrawlSnap",
+    "AsyncCrawlSnap",
     "RawResponse",
     "__version__",
     # exceptions

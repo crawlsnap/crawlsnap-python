@@ -6,9 +6,10 @@ Authenticate once and call any CrawlSnap data product, with first-class types,
 automatic retries, and pagination built in.
 
 - Idiomatic, fully typed client (httpx + pydantic v2)
-- `crawlsnap.init(...)` singleton **or** an explicit `CrawlSnap` client
+- Sync **and** async: `CrawlSnap` or `AsyncCrawlSnap` — identical surface
+- `crawlsnap.init(...)` singleton **or** an explicit client
 - Resource namespacing: `crawlsnap.vector_snap.ip(...)`
-- Per-API version pinning: stay on `vector_snap.v1` while other products track latest
+- Per-API version pinning with a **stable default** — your calls never silently jump to a new API version
 - Returns typed data; raises typed exceptions — no envelope bookkeeping
 - Built-in retries with exponential backoff, configurable timeout, auto-pagination
 
@@ -52,6 +53,32 @@ print(ip.reputation, ip.as_owner, ip.country)
 Each call returns the typed enrichment payload directly, and raises a typed
 exception on failure — you never inspect an `is_success` envelope yourself.
 
+## Async
+
+`AsyncCrawlSnap` is the awaitable twin of `CrawlSnap` — same constructor, same
+resources, same retries and typed errors. Ideal for enriching many indicators
+concurrently:
+
+```python
+import asyncio
+from crawlsnap import AsyncCrawlSnap
+
+async def main():
+    async with AsyncCrawlSnap(api_key="sk-cs-...") as client:
+        ip, dom = await asyncio.gather(
+            client.vector_snap.ip("8.8.8.8"),
+            client.vector_snap.domain("google.com"),
+        )
+        print(ip.as_owner, dom.reputation)
+
+        async for subdomain in client.subdo_snap.scan_iter("example.com"):
+            print(subdomain)
+
+asyncio.run(main())
+```
+
+Every method is a coroutine; `scan_iter` is an async generator (use `async for`).
+
 ## Resources
 
 | Resource | Methods | Returns |
@@ -73,26 +100,29 @@ Every method takes the indicator as the first positional argument and accepts
 
 ## API versioning
 
-Each CrawlSnap data product is versioned **independently**. Calling a resource
-method directly always targets that product's **latest** API version:
+Each CrawlSnap data product is versioned **independently**, and the version is
+just a value the SDK puts in the request path — not something baked into your
+call site. A direct resource call targets that product's **stable default**
+version for this SDK release:
 
 ```python
-crawlsnap.vector_snap.ip("8.8.8.8")        # latest VectorSnap
+crawlsnap.vector_snap.ip("8.8.8.8")        # default VectorSnap version (stable)
 ```
 
-When a product ships a new API version, you don't have to pin the whole SDK (or
-hold back every other product) to keep your current behavior. Pin just the one
-you care about via its version namespace — everything else stays on latest:
+The default is **pinned per SDK release and never moves on its own**: upgrading
+the SDK does not silently retarget your calls at a newer API version. When a
+product ships a new version, you opt in explicitly — per product, without
+touching the others:
 
 ```python
 crawlsnap.vector_snap.v1.ip("8.8.8.8")     # explicitly VectorSnap v1
-crawlsnap.pulse_snap.url("https://x.com")  # still latest PulseSnap
+crawlsnap.pulse_snap.url("https://x.com")  # unaffected — PulseSnap default
 ```
 
-The same applies on an explicit client (`client.vector_snap.v1.ip(...)`). Pinned
-namespaces (`.v1`, and future `.v2`, …) are typed, so your IDE and type checker
-see the exact payload shape for that version. Upgrade at your own pace: switch a
-call from `.v1` to the default (or `.v2`) when you're ready.
+The same applies on an explicit client (`client.vector_snap.v1.ip(...)`) and on
+`AsyncCrawlSnap`. When a product's default version is bumped in a future SDK
+release, it ships as a deliberate, documented change — so you upgrade at your
+own pace.
 
 ## Error handling
 
@@ -167,6 +197,9 @@ client = CrawlSnap(
 ip = client.vector_snap.ip("1.1.1.1")
 client.close()
 ```
+
+`AsyncCrawlSnap` accepts the exact same options (`api_key`, `base_url`,
+`timeout`, `max_retries`); `await client.close()` or use `async with`.
 
 | Option | Default | Description |
 |--------|---------|-------------|

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import httpx
 import pytest
 
@@ -146,3 +148,91 @@ def test_missing_api_key_raises(monkeypatch):
     monkeypatch.delenv("CRAWLSNAP_API_KEY", raising=False)
     with pytest.raises(CrawlSnapError):
         CrawlSnap()
+
+
+def test_default_version_is_stable_not_latest():
+    # A direct (unpinned) call targets the product's pinned default version,
+    # which must not drift on its own — it equals the explicit .v1 endpoint.
+    client, _ = _client()
+    assert client.vector_snap._version == "v1"
+    assert client.vector_snap.v1._version == "v1"
+    # Pinning is per-product: pinning VectorSnap leaves PulseSnap untouched.
+    assert client.pulse_snap._version == "v1"
+
+
+# --------------------------------------------------------------------------
+# Async client — same surface, awaitable.
+# --------------------------------------------------------------------------
+
+
+def _async_client(max_retries: int = 2):
+    from crawlsnap import AsyncCrawlSnap
+
+    handler, state = _make_handler()
+    client = AsyncCrawlSnap(
+        api_key="sk-cs-test", max_retries=max_retries, transport=httpx.MockTransport(handler)
+    )
+    return client, state
+
+
+def test_async_success_returns_typed_data():
+    async def run():
+        client, _ = _async_client()
+        try:
+            ip = await client.vector_snap.ip("8.8.8.8")
+            assert ip.as_owner == "GOOGLE"
+            assert ip.ip == "8.8.8.8"
+        finally:
+            await client.close()
+
+    asyncio.run(run())
+
+
+def test_async_not_found_raises():
+    async def run():
+        client, _ = _async_client()
+        try:
+            with pytest.raises(NotFoundError):
+                await client.vector_snap.domain("nope.example")
+        finally:
+            await client.close()
+
+    asyncio.run(run())
+
+
+def test_async_retry_then_success():
+    async def run():
+        client, state = _async_client(max_retries=2)
+        try:
+            res = await client.vector_snap.url("https://x.com")
+            assert res.url == "https://x.com"
+            assert state["url_calls"] == 2
+        finally:
+            await client.close()
+
+    asyncio.run(run())
+
+
+def test_async_pagination_iterates_all_pages():
+    async def run():
+        client, _ = _async_client()
+        try:
+            out = [sub async for sub in client.subdo_snap.scan_iter("example.com")]
+            assert out == [{"subdomain": "a.example.com"}, {"subdomain": "b.example.com"}]
+        finally:
+            await client.close()
+
+    asyncio.run(run())
+
+
+def test_async_context_manager():
+    async def run():
+        from crawlsnap import AsyncCrawlSnap
+
+        handler, _ = _make_handler()
+        async with AsyncCrawlSnap(
+            api_key="sk-cs-test", max_retries=0, transport=httpx.MockTransport(handler)
+        ) as client:
+            assert (await client.vector_snap.ip("8.8.8.8")).as_owner == "GOOGLE"
+
+    asyncio.run(run())

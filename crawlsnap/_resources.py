@@ -2,33 +2,37 @@
 ``subdo_snap``. Each method submits one indicator and returns the typed
 enrichment payload (the unwrapped ``data``), or raises a typed exception.
 
-Per-API versioning
--------------------
-Every CrawlSnap data product is versioned independently. Calling a resource
-method directly uses that product's *latest* API version::
+Per-API versioning (version is data, not a class hierarchy)
+-----------------------------------------------------------
+Every CrawlSnap data product is versioned independently, and the version is
+carried as a value on the resource (``self._version``), interpolated into the
+request path — not encoded as a separate class per version. A direct call uses
+that product's **stable default** version::
 
-    client.vector_snap.ip("8.8.8.8")      # latest VectorSnap
+    client.vector_snap.ip("8.8.8.8")          # default version (stable)
 
-To pin one product to a specific API version — without affecting the others —
-use its version namespace::
+The default is pinned per SDK release via ``_DEFAULT_VERSION`` and never moves
+on its own: upgrading the SDK does not silently retarget your calls at a newer
+API version. Opt into a specific version explicitly with a version accessor,
+which scopes to *one* product and leaves the others untouched::
 
-    client.vector_snap.v1.ip("8.8.8.8")   # explicitly VectorSnap v1
-    client.pulse_snap.url("https://x")    # still latest PulseSnap
+    client.vector_snap.v1.ip("8.8.8.8")       # explicitly VectorSnap v1
+    client.pulse_snap.url("https://x.com")     # unaffected — PulseSnap default
 
 Adding a new API version (e.g. VectorSnap v2)
 ---------------------------------------------
-1. Add the new typed models for v2 (kept alongside the v1 ones so v1 callers
-   keep working).
-2. Add a ``VectorSnapV2`` implementation class below, with its own ``_PREFIX``
-   (``/v2/...``) and return types.
-3. Re-base the public ``VectorSnap`` namespace on the new latest
-   (``class VectorSnap(_VersionedNamespace, VectorSnapV2)``) and add a ``v2``
-   property. Keep the ``v1`` property and ``VectorSnapV1`` intact.
+1. Add ``"v2"`` to the product's ``_VERSIONS`` and a ``v2`` accessor.
+2. Regenerate the typed models from the v2 contract.
+3. When ready to make v2 the default for unpinned callers, bump
+   ``_DEFAULT_VERSION`` to ``"v2"`` in a deliberate SDK release (changelog +
+   version bump) — never as a silent side effect of an unrelated upgrade.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, overload
+
+from typing_extensions import Literal
 
 from crawlsnap.models.ioc_domain_scan_data import IocDomainScanData
 from crawlsnap.models.ioc_hash_scan_data import IocHashScanData
@@ -41,34 +45,35 @@ from crawlsnap.models.pulse_url_scan_data import PulseUrlScanData
 from crawlsnap.models.subdo_snap_scan_data import SubdoSnapScanData
 
 if TYPE_CHECKING:
+    from ._base import RawResponse
     from ._client import CrawlSnap
-
-_R = TypeVar("_R", bound="_Resource")
 
 
 class _Resource:
-    def __init__(self, client: "CrawlSnap") -> None:
-        self._client = client
+    """Base for a single data product, pinned to one API version.
 
-
-class _VersionedNamespace(_Resource):
-    """Public namespace for one data product.
-
-    Inherits the *latest* version's methods (so direct calls use the newest
-    API), and exposes ``vN`` properties that return version-pinned instances.
-    Pinned instances are created lazily and cached per client.
+    The version is a value, not a subtype. A direct call uses
+    :data:`_DEFAULT_VERSION` (stable, bumped only by a deliberate SDK release);
+    a ``vN`` accessor returns a lazily-cached instance pinned to that version.
     """
 
-    def __init__(self, client: "CrawlSnap") -> None:
-        super().__init__(client)
-        self.__pinned: Dict[str, _Resource] = {}
+    #: Stable default API version. Unpinned calls use this; it does not change
+    #: unless the SDK deliberately bumps it in a release.
+    _DEFAULT_VERSION = "v1"
+    #: API versions this SDK build can talk to.
+    _VERSIONS = ("v1",)
 
-    def _pin(self, version: str, cls: Type[_R]) -> _R:
-        inst = self.__pinned.get(version)
+    def __init__(self, client: "CrawlSnap", version: Optional[str] = None) -> None:
+        self._client = client
+        self._version = version or self._DEFAULT_VERSION
+        self._pins: Dict[str, "_Resource"] = {}
+
+    def _pinned(self, version: str) -> Any:
+        inst = self._pins.get(version)
         if inst is None:
-            inst = cls(self._client)
-            self.__pinned[version] = inst
-        return inst  # type: ignore[return-value]
+            inst = type(self)(self._client, version=version)
+            self._pins[version] = inst
+        return inst
 
 
 # --------------------------------------------------------------------------
@@ -76,39 +81,51 @@ class _VersionedNamespace(_Resource):
 # --------------------------------------------------------------------------
 
 
-class VectorSnapV1(_Resource):
-    """IoC reputation enrichment for url, hash, ip, domain (API v1)."""
+class VectorSnap(_Resource):
+    """IoC reputation enrichment for url / hash / ip / domain.
 
-    _PREFIX = "/v1/ioc/search"
-
-    def url(self, query: str, *, raw_response: bool = False) -> IocUrlScanData:
-        return self._client._request(
-            f"{self._PREFIX}/url", {"query": query}, IocUrlScanData, raw_response=raw_response
-        )
-
-    def hash(self, query: str, *, raw_response: bool = False) -> IocHashScanData:
-        return self._client._request(
-            f"{self._PREFIX}/hash", {"query": query}, IocHashScanData, raw_response=raw_response
-        )
-
-    def ip(self, query: str, *, raw_response: bool = False) -> IocIpScanData:
-        return self._client._request(
-            f"{self._PREFIX}/ip", {"query": query}, IocIpScanData, raw_response=raw_response
-        )
-
-    def domain(self, query: str, *, raw_response: bool = False) -> IocDomainScanData:
-        return self._client._request(
-            f"{self._PREFIX}/domain", {"query": query}, IocDomainScanData, raw_response=raw_response
-        )
-
-
-class VectorSnap(_VersionedNamespace, VectorSnapV1):
-    """IoC reputation enrichment. Direct calls use the latest API version;
-    pin to a specific version via :attr:`v1`."""
+    A direct call uses the stable default version; pin explicitly via
+    :attr:`v1`."""
 
     @property
-    def v1(self) -> VectorSnapV1:
-        return self._pin("v1", VectorSnapV1)
+    def v1(self) -> "VectorSnap":
+        return self._pinned("v1")
+
+    @overload
+    def url(self, query: str, *, raw_response: Literal[False] = False) -> IocUrlScanData: ...
+    @overload
+    def url(self, query: str, *, raw_response: Literal[True]) -> "RawResponse": ...
+    def url(self, query: str, *, raw_response: bool = False) -> Any:
+        return self._client._request(
+            f"/{self._version}/ioc/search/url", {"query": query}, IocUrlScanData, raw_response=raw_response
+        )
+
+    @overload
+    def hash(self, query: str, *, raw_response: Literal[False] = False) -> IocHashScanData: ...
+    @overload
+    def hash(self, query: str, *, raw_response: Literal[True]) -> "RawResponse": ...
+    def hash(self, query: str, *, raw_response: bool = False) -> Any:
+        return self._client._request(
+            f"/{self._version}/ioc/search/hash", {"query": query}, IocHashScanData, raw_response=raw_response
+        )
+
+    @overload
+    def ip(self, query: str, *, raw_response: Literal[False] = False) -> IocIpScanData: ...
+    @overload
+    def ip(self, query: str, *, raw_response: Literal[True]) -> "RawResponse": ...
+    def ip(self, query: str, *, raw_response: bool = False) -> Any:
+        return self._client._request(
+            f"/{self._version}/ioc/search/ip", {"query": query}, IocIpScanData, raw_response=raw_response
+        )
+
+    @overload
+    def domain(self, query: str, *, raw_response: Literal[False] = False) -> IocDomainScanData: ...
+    @overload
+    def domain(self, query: str, *, raw_response: Literal[True]) -> "RawResponse": ...
+    def domain(self, query: str, *, raw_response: bool = False) -> Any:
+        return self._client._request(
+            f"/{self._version}/ioc/search/domain", {"query": query}, IocDomainScanData, raw_response=raw_response
+        )
 
 
 # --------------------------------------------------------------------------
@@ -116,39 +133,51 @@ class VectorSnap(_VersionedNamespace, VectorSnapV1):
 # --------------------------------------------------------------------------
 
 
-class PulseSnapV1(_Resource):
-    """Threat-intelligence pulse enrichment for url, hash, ip, domain (API v1)."""
+class PulseSnap(_Resource):
+    """Threat-intelligence pulse enrichment for url / hash / ip / domain.
 
-    _PREFIX = "/v1/pulse-snap/scan"
-
-    def url(self, query: str, *, raw_response: bool = False) -> PulseUrlScanData:
-        return self._client._request(
-            f"{self._PREFIX}/url", {"query": query}, PulseUrlScanData, raw_response=raw_response
-        )
-
-    def hash(self, query: str, *, raw_response: bool = False) -> PulseHashScanData:
-        return self._client._request(
-            f"{self._PREFIX}/hash", {"query": query}, PulseHashScanData, raw_response=raw_response
-        )
-
-    def ip(self, query: str, *, raw_response: bool = False) -> PulseIpScanData:
-        return self._client._request(
-            f"{self._PREFIX}/ip", {"query": query}, PulseIpScanData, raw_response=raw_response
-        )
-
-    def domain(self, query: str, *, raw_response: bool = False) -> PulseDomainScanData:
-        return self._client._request(
-            f"{self._PREFIX}/domain", {"query": query}, PulseDomainScanData, raw_response=raw_response
-        )
-
-
-class PulseSnap(_VersionedNamespace, PulseSnapV1):
-    """Threat-intelligence pulse enrichment. Direct calls use the latest API
-    version; pin to a specific version via :attr:`v1`."""
+    A direct call uses the stable default version; pin explicitly via
+    :attr:`v1`."""
 
     @property
-    def v1(self) -> PulseSnapV1:
-        return self._pin("v1", PulseSnapV1)
+    def v1(self) -> "PulseSnap":
+        return self._pinned("v1")
+
+    @overload
+    def url(self, query: str, *, raw_response: Literal[False] = False) -> PulseUrlScanData: ...
+    @overload
+    def url(self, query: str, *, raw_response: Literal[True]) -> "RawResponse": ...
+    def url(self, query: str, *, raw_response: bool = False) -> Any:
+        return self._client._request(
+            f"/{self._version}/pulse-snap/scan/url", {"query": query}, PulseUrlScanData, raw_response=raw_response
+        )
+
+    @overload
+    def hash(self, query: str, *, raw_response: Literal[False] = False) -> PulseHashScanData: ...
+    @overload
+    def hash(self, query: str, *, raw_response: Literal[True]) -> "RawResponse": ...
+    def hash(self, query: str, *, raw_response: bool = False) -> Any:
+        return self._client._request(
+            f"/{self._version}/pulse-snap/scan/hash", {"query": query}, PulseHashScanData, raw_response=raw_response
+        )
+
+    @overload
+    def ip(self, query: str, *, raw_response: Literal[False] = False) -> PulseIpScanData: ...
+    @overload
+    def ip(self, query: str, *, raw_response: Literal[True]) -> "RawResponse": ...
+    def ip(self, query: str, *, raw_response: bool = False) -> Any:
+        return self._client._request(
+            f"/{self._version}/pulse-snap/scan/ip", {"query": query}, PulseIpScanData, raw_response=raw_response
+        )
+
+    @overload
+    def domain(self, query: str, *, raw_response: Literal[False] = False) -> PulseDomainScanData: ...
+    @overload
+    def domain(self, query: str, *, raw_response: Literal[True]) -> "RawResponse": ...
+    def domain(self, query: str, *, raw_response: bool = False) -> Any:
+        return self._client._request(
+            f"/{self._version}/pulse-snap/scan/domain", {"query": query}, PulseDomainScanData, raw_response=raw_response
+        )
 
 
 # --------------------------------------------------------------------------
@@ -156,21 +185,28 @@ class PulseSnap(_VersionedNamespace, PulseSnapV1):
 # --------------------------------------------------------------------------
 
 
-class SubdoSnapV1(_Resource):
-    """Subdomain enumeration for a domain, paginated (API v1)."""
+class SubdoSnap(_Resource):
+    """Subdomain enumeration for a domain, paginated.
 
-    _PREFIX = "/v1/subdo-snap"
+    A direct call uses the stable default version; pin explicitly via
+    :attr:`v1`."""
 
-    def scan(
-        self, query: str, *, cursor: Optional[str] = None, raw_response: bool = False
-    ) -> SubdoSnapScanData:
+    @property
+    def v1(self) -> "SubdoSnap":
+        return self._pinned("v1")
+
+    @overload
+    def scan(self, query: str, *, cursor: Optional[str] = None, raw_response: Literal[False] = False) -> SubdoSnapScanData: ...
+    @overload
+    def scan(self, query: str, *, cursor: Optional[str] = None, raw_response: Literal[True]) -> "RawResponse": ...
+    def scan(self, query: str, *, cursor: Optional[str] = None, raw_response: bool = False) -> Any:
         """Fetch one page of subdomains. Pass ``cursor`` to page; see
         :meth:`scan_iter` to stream every subdomain automatically."""
         params: Dict[str, Any] = {"query": query}
         if cursor:
             params["cursor"] = cursor
         return self._client._request(
-            f"{self._PREFIX}/scan", params, SubdoSnapScanData, raw_response=raw_response
+            f"/{self._version}/subdo-snap/scan", params, SubdoSnapScanData, raw_response=raw_response
         )
 
     def scan_iter(self, query: str) -> Iterator[Any]:
@@ -183,12 +219,3 @@ class SubdoSnapV1(_Resource):
             cursor = page.cursor
             if not cursor:
                 break
-
-
-class SubdoSnap(_VersionedNamespace, SubdoSnapV1):
-    """Subdomain enumeration. Direct calls use the latest API version; pin to a
-    specific version via :attr:`v1`."""
-
-    @property
-    def v1(self) -> SubdoSnapV1:
-        return self._pin("v1", SubdoSnapV1)
