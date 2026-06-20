@@ -38,7 +38,7 @@ class IocHashScanData(BaseModel):
     type_description: Optional[StrictStr] = None
     meaningful_name: Optional[StrictStr] = None
     authentihash: Optional[StrictStr] = None
-    detectiteasy: Optional[Dict[str, Any]] = None
+    detectiteasy: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
     trid: Optional[List[Dict[str, Any]]] = None
     type_extension: Optional[StrictStr] = None
     tags: Optional[List[StrictStr]] = None
@@ -53,15 +53,15 @@ class IocHashScanData(BaseModel):
     bundled_files: Optional[List[Dict[str, Any]]] = None
     contacted_ips: Optional[List[Dict[str, Any]]] = None
     contacted_domains: Optional[List[Dict[str, Any]]] = None
-    sigma: Optional[Dict[str, Any]] = None
-    sigma_stats: Optional[Dict[str, Any]] = None
-    classification: Optional[Dict[str, Any]] = None
-    pe_info: Optional[Dict[str, Any]] = None
-    signature: Optional[Dict[str, Any]] = None
-    votes_result: Optional[Dict[str, Any]] = None
-    sandbox_verdicts: Optional[Dict[str, Any]] = None
-    security_vendor_analysis: Optional[Dict[str, Any]] = None
-    security_vendor_analysis_stats: Optional[Dict[str, Any]] = None
+    sigma: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    sigma_stats: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    classification: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    pe_info: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    signature: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    votes_result: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    sandbox_verdicts: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    security_vendor_analysis: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    security_vendor_analysis_stats: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
     __properties: ClassVar[List[str]] = ["hash_id", "search_type", "ssdeep", "type_tag", "type_tags", "magic", "magika", "type_description", "meaningful_name", "authentihash", "detectiteasy", "trid", "type_extension", "tags", "tlsh", "analysis_date", "modification_date", "md5", "sha1", "sha256", "file_size", "dropped_files", "bundled_files", "contacted_ips", "contacted_domains", "sigma", "sigma_stats", "classification", "pe_info", "signature", "votes_result", "sandbox_verdicts", "security_vendor_analysis", "security_vendor_analysis_stats"]
 
     @field_validator('search_type')
@@ -110,6 +110,56 @@ class IocHashScanData(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # set to None if detectiteasy (nullable) is None
+        # and model_fields_set contains the field
+        if self.detectiteasy is None and "detectiteasy" in self.model_fields_set:
+            _dict['detectiteasy'] = None
+
+        # set to None if sigma (nullable) is None
+        # and model_fields_set contains the field
+        if self.sigma is None and "sigma" in self.model_fields_set:
+            _dict['sigma'] = None
+
+        # set to None if sigma_stats (nullable) is None
+        # and model_fields_set contains the field
+        if self.sigma_stats is None and "sigma_stats" in self.model_fields_set:
+            _dict['sigma_stats'] = None
+
+        # set to None if classification (nullable) is None
+        # and model_fields_set contains the field
+        if self.classification is None and "classification" in self.model_fields_set:
+            _dict['classification'] = None
+
+        # set to None if pe_info (nullable) is None
+        # and model_fields_set contains the field
+        if self.pe_info is None and "pe_info" in self.model_fields_set:
+            _dict['pe_info'] = None
+
+        # set to None if signature (nullable) is None
+        # and model_fields_set contains the field
+        if self.signature is None and "signature" in self.model_fields_set:
+            _dict['signature'] = None
+
+        # set to None if votes_result (nullable) is None
+        # and model_fields_set contains the field
+        if self.votes_result is None and "votes_result" in self.model_fields_set:
+            _dict['votes_result'] = None
+
+        # set to None if sandbox_verdicts (nullable) is None
+        # and model_fields_set contains the field
+        if self.sandbox_verdicts is None and "sandbox_verdicts" in self.model_fields_set:
+            _dict['sandbox_verdicts'] = None
+
+        # set to None if security_vendor_analysis (nullable) is None
+        # and model_fields_set contains the field
+        if self.security_vendor_analysis is None and "security_vendor_analysis" in self.model_fields_set:
+            _dict['security_vendor_analysis'] = None
+
+        # set to None if security_vendor_analysis_stats (nullable) is None
+        # and model_fields_set contains the field
+        if self.security_vendor_analysis_stats is None and "security_vendor_analysis_stats" in self.model_fields_set:
+            _dict['security_vendor_analysis_stats'] = None
+
         return _dict
 
     @classmethod

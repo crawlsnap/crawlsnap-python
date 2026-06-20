@@ -36,11 +36,11 @@ class IocUrlScanData(BaseModel):
     reputation: Optional[StrictInt] = None
     threat_names: Optional[List[StrictStr]] = None
     tags: Optional[List[StrictStr]] = None
-    categories: Optional[Dict[str, Any]] = None
-    security_vendor_analysis: Optional[Dict[str, Any]] = None
-    security_vendor_analysis_stats: Optional[Dict[str, Any]] = None
-    url_content: Optional[Dict[str, Any]] = None
-    network: Optional[Dict[str, Any]] = None
+    categories: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    security_vendor_analysis: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    security_vendor_analysis_stats: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    url_content: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    network: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
     __properties: ClassVar[List[str]] = ["hash_id", "search_type", "url", "modification_date", "analysis_date", "reputation", "threat_names", "tags", "categories", "security_vendor_analysis", "security_vendor_analysis_stats", "url_content", "network"]
 
     @field_validator('search_type')
@@ -89,6 +89,31 @@ class IocUrlScanData(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # set to None if categories (nullable) is None
+        # and model_fields_set contains the field
+        if self.categories is None and "categories" in self.model_fields_set:
+            _dict['categories'] = None
+
+        # set to None if security_vendor_analysis (nullable) is None
+        # and model_fields_set contains the field
+        if self.security_vendor_analysis is None and "security_vendor_analysis" in self.model_fields_set:
+            _dict['security_vendor_analysis'] = None
+
+        # set to None if security_vendor_analysis_stats (nullable) is None
+        # and model_fields_set contains the field
+        if self.security_vendor_analysis_stats is None and "security_vendor_analysis_stats" in self.model_fields_set:
+            _dict['security_vendor_analysis_stats'] = None
+
+        # set to None if url_content (nullable) is None
+        # and model_fields_set contains the field
+        if self.url_content is None and "url_content" in self.model_fields_set:
+            _dict['url_content'] = None
+
+        # set to None if network (nullable) is None
+        # and model_fields_set contains the field
+        if self.network is None and "network" in self.model_fields_set:
+            _dict['network'] = None
+
         return _dict
 
     @classmethod

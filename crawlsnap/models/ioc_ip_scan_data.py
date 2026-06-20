@@ -43,9 +43,9 @@ class IocIpScanData(BaseModel):
     continent: Optional[StrictStr] = None
     modification_date: Optional[StrictInt] = None
     analysis_date: Optional[StrictInt] = None
-    votes_result: Optional[Dict[str, Any]] = None
-    security_vendor_analysis: Optional[Dict[str, Any]] = None
-    security_vendor_analysis_stats: Optional[Dict[str, Any]] = None
+    votes_result: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    security_vendor_analysis: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    security_vendor_analysis_stats: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
     referrer_files: Optional[List[Dict[str, Any]]] = Field(default=None, alias="referrerFiles")
     communicating_files: Optional[List[Dict[str, Any]]] = None
     resolutions: Optional[List[Dict[str, Any]]] = None
@@ -97,6 +97,21 @@ class IocIpScanData(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # set to None if votes_result (nullable) is None
+        # and model_fields_set contains the field
+        if self.votes_result is None and "votes_result" in self.model_fields_set:
+            _dict['votes_result'] = None
+
+        # set to None if security_vendor_analysis (nullable) is None
+        # and model_fields_set contains the field
+        if self.security_vendor_analysis is None and "security_vendor_analysis" in self.model_fields_set:
+            _dict['security_vendor_analysis'] = None
+
+        # set to None if security_vendor_analysis_stats (nullable) is None
+        # and model_fields_set contains the field
+        if self.security_vendor_analysis_stats is None and "security_vendor_analysis_stats" in self.model_fields_set:
+            _dict['security_vendor_analysis_stats'] = None
+
         return _dict
 
     @classmethod

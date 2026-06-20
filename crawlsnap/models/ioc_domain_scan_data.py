@@ -42,13 +42,13 @@ class IocDomainScanData(BaseModel):
     jarm: Optional[StrictStr] = None
     registrar: Optional[StrictStr] = None
     analysis_date: Optional[StrictInt] = None
-    votes_result: Optional[Dict[str, Any]] = None
-    security_vendor_analysis: Optional[Dict[str, Any]] = None
-    security_vendor_analysis_stats: Optional[Dict[str, Any]] = None
-    categories: Optional[Dict[str, Any]] = None
-    popularity_ranks: Optional[Dict[str, Any]] = None
+    votes_result: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    security_vendor_analysis: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    security_vendor_analysis_stats: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    categories: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
+    popularity_ranks: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
     dns_records: Optional[List[Dict[str, Any]]] = None
-    http_certificate: Optional[Dict[str, Any]] = None
+    http_certificate: Optional[Any] = Field(default=None, description="Opaque upstream pass-through; shape varies (object/array/scalar), so it is typed as free-form.")
     referrer_files: Optional[List[Dict[str, Any]]] = Field(default=None, alias="referrerFiles")
     communicating_files: Optional[List[Dict[str, Any]]] = None
     subdomains: Optional[List[Dict[str, Any]]] = None
@@ -102,6 +102,36 @@ class IocDomainScanData(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # set to None if votes_result (nullable) is None
+        # and model_fields_set contains the field
+        if self.votes_result is None and "votes_result" in self.model_fields_set:
+            _dict['votes_result'] = None
+
+        # set to None if security_vendor_analysis (nullable) is None
+        # and model_fields_set contains the field
+        if self.security_vendor_analysis is None and "security_vendor_analysis" in self.model_fields_set:
+            _dict['security_vendor_analysis'] = None
+
+        # set to None if security_vendor_analysis_stats (nullable) is None
+        # and model_fields_set contains the field
+        if self.security_vendor_analysis_stats is None and "security_vendor_analysis_stats" in self.model_fields_set:
+            _dict['security_vendor_analysis_stats'] = None
+
+        # set to None if categories (nullable) is None
+        # and model_fields_set contains the field
+        if self.categories is None and "categories" in self.model_fields_set:
+            _dict['categories'] = None
+
+        # set to None if popularity_ranks (nullable) is None
+        # and model_fields_set contains the field
+        if self.popularity_ranks is None and "popularity_ranks" in self.model_fields_set:
+            _dict['popularity_ranks'] = None
+
+        # set to None if http_certificate (nullable) is None
+        # and model_fields_set contains the field
+        if self.http_certificate is None and "http_certificate" in self.model_fields_set:
+            _dict['http_certificate'] = None
+
         return _dict
 
     @classmethod
