@@ -59,11 +59,16 @@ from crawlsnap.models.pulse_hash_scan_data import PulseHashScanData
 from crawlsnap.models.pulse_ip_scan_data import PulseIpScanData
 from crawlsnap.models.pulse_url_scan_data import PulseUrlScanData
 from crawlsnap.models.subdo_snap_scan_data import SubdoSnapScanData
+from crawlsnap.models.channel_data import ChannelData
+from crawlsnap.models.channel_schedule_data import ChannelScheduleData
+from crawlsnap.models.country_channels_data import CountryChannelsData
+from crawlsnap.models.daily_schedule_data import DailyScheduleData
+from crawlsnap.models.match_data import MatchData
 
 _default_client: Optional[CrawlSnap] = None
 
 # Resource names resolved lazily against the singleton (see __getattr__).
-_RESOURCE_NAMES = ("vector_snap", "pulse_snap", "subdo_snap")
+_RESOURCE_NAMES = ("vector_snap", "pulse_snap", "subdo_snap", "sport_snap")
 
 
 def init(api_key: Optional[str] = None, **kwargs: Any) -> CrawlSnap:
@@ -125,4 +130,9 @@ __all__ = [
     "PulseIpScanData",
     "PulseDomainScanData",
     "SubdoSnapScanData",
+    "ChannelData",
+    "ChannelScheduleData",
+    "MatchData",
+    "CountryChannelsData",
+    "DailyScheduleData",
 ]

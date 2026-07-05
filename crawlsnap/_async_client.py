@@ -25,7 +25,12 @@ from typing import Any, Dict, Optional
 
 import httpx
 
-from ._async_resources import AsyncPulseSnap, AsyncSubdoSnap, AsyncVectorSnap
+from ._async_resources import (
+    AsyncPulseSnap,
+    AsyncSportSnap,
+    AsyncSubdoSnap,
+    AsyncVectorSnap,
+)
 from ._base import (
     DEFAULT_BASE_URL,
     DEFAULT_MAX_RETRIES,
@@ -88,6 +93,7 @@ class AsyncCrawlSnap:
         self.vector_snap = AsyncVectorSnap(self)
         self.pulse_snap = AsyncPulseSnap(self)
         self.subdo_snap = AsyncSubdoSnap(self)
+        self.sport_snap = AsyncSportSnap(self)
 
     # -- public lifecycle ------------------------------------------------
 

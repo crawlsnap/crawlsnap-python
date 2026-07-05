@@ -18,22 +18,23 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
-from typing import Any, ClassVar, Dict, List, Optional
-from crawlsnap.models.pulse_domain_scan_data import PulseDomainScanData
+from datetime import datetime
+from pydantic import BaseModel, ConfigDict, StrictStr
+from typing import Any, ClassVar, Dict, List
+from crawlsnap.models.country_channel import CountryChannel
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PulseSnapDomainResponse(BaseModel):
+class CountryChannelsData(BaseModel):
     """
-    PulseSnapDomainResponse
+    CountryChannelsData
     """ # noqa: E501
-    data: Optional[PulseDomainScanData] = None
-    is_success: StrictBool = Field(description="True only when `data` contains usable enrichment.")
-    message: StrictStr = Field(description="Human-readable summary of the outcome.")
-    response_code: StrictInt = Field(description="Mirrors the HTTP status code.")
-    __properties: ClassVar[List[str]] = ["data", "is_success", "message", "response_code"]
+    country: StrictStr
+    country_slug: StrictStr
+    channels: List[CountryChannel]
+    updated_at: datetime
+    __properties: ClassVar[List[str]] = ["country", "country_slug", "channels", "updated_at"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -53,7 +54,7 @@ class PulseSnapDomainResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PulseSnapDomainResponse from a JSON string"""
+        """Create an instance of CountryChannelsData from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,14 +75,18 @@ class PulseSnapDomainResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of data
-        if self.data:
-            _dict['data'] = self.data.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of each item in channels (list)
+        _items = []
+        if self.channels:
+            for _item_channels in self.channels:
+                if _item_channels:
+                    _items.append(_item_channels.to_dict())
+            _dict['channels'] = _items
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PulseSnapDomainResponse from a dict"""
+        """Create an instance of CountryChannelsData from a dict"""
         if obj is None:
             return None
 
@@ -89,10 +94,10 @@ class PulseSnapDomainResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "data": PulseDomainScanData.from_dict(obj["data"]) if obj.get("data") is not None else None,
-            "is_success": obj.get("is_success"),
-            "message": obj.get("message"),
-            "response_code": obj.get("response_code")
+            "country": obj.get("country"),
+            "country_slug": obj.get("country_slug"),
+            "channels": [CountryChannel.from_dict(_item) for _item in obj["channels"]] if obj.get("channels") is not None else None,
+            "updated_at": obj.get("updated_at")
         })
         return _obj
 

@@ -18,22 +18,20 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from crawlsnap.models.pulse_domain_scan_data import PulseDomainScanData
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PulseSnapDomainResponse(BaseModel):
+class BroadcastRight(BaseModel):
     """
-    PulseSnapDomainResponse
+    BroadcastRight
     """ # noqa: E501
-    data: Optional[PulseDomainScanData] = None
-    is_success: StrictBool = Field(description="True only when `data` contains usable enrichment.")
-    message: StrictStr = Field(description="Human-readable summary of the outcome.")
-    response_code: StrictInt = Field(description="Mirrors the HTTP status code.")
-    __properties: ClassVar[List[str]] = ["data", "is_success", "message", "response_code"]
+    competition: StrictStr = Field(description="Competition display name, e.g. \"England - Premier League\".")
+    year_start: StrictInt = Field(description="First year of the rights window, e.g. 2024.")
+    year_end: Optional[StrictInt] = Field(default=None, description="Last year of the rights window; null when open-ended or unspecified.")
+    __properties: ClassVar[List[str]] = ["competition", "year_start", "year_end"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -53,7 +51,7 @@ class PulseSnapDomainResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PulseSnapDomainResponse from a JSON string"""
+        """Create an instance of BroadcastRight from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,14 +72,16 @@ class PulseSnapDomainResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of data
-        if self.data:
-            _dict['data'] = self.data.to_dict()
+        # set to None if year_end (nullable) is None
+        # and model_fields_set contains the field
+        if self.year_end is None and "year_end" in self.model_fields_set:
+            _dict['year_end'] = None
+
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PulseSnapDomainResponse from a dict"""
+        """Create an instance of BroadcastRight from a dict"""
         if obj is None:
             return None
 
@@ -89,10 +89,9 @@ class PulseSnapDomainResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "data": PulseDomainScanData.from_dict(obj["data"]) if obj.get("data") is not None else None,
-            "is_success": obj.get("is_success"),
-            "message": obj.get("message"),
-            "response_code": obj.get("response_code")
+            "competition": obj.get("competition"),
+            "year_start": obj.get("year_start"),
+            "year_end": obj.get("year_end")
         })
         return _obj
 

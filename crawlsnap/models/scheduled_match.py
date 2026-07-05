@@ -18,22 +18,31 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
+from datetime import datetime
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from crawlsnap.models.pulse_domain_scan_data import PulseDomainScanData
+from crawlsnap.models.broadcast_channel import BroadcastChannel
+from crawlsnap.models.match_status import MatchStatus
+from crawlsnap.models.score import Score
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PulseSnapDomainResponse(BaseModel):
+class ScheduledMatch(BaseModel):
     """
-    PulseSnapDomainResponse
+    ScheduledMatch
     """ # noqa: E501
-    data: Optional[PulseDomainScanData] = None
-    is_success: StrictBool = Field(description="True only when `data` contains usable enrichment.")
-    message: StrictStr = Field(description="Human-readable summary of the outcome.")
-    response_code: StrictInt = Field(description="Mirrors the HTTP status code.")
-    __properties: ClassVar[List[str]] = ["data", "is_success", "message", "response_code"]
+    id: Optional[StrictInt] = Field(default=None, description="Numeric match id usable with `/api/v1/matches/{id}`; null when the source link carried no id.")
+    title: StrictStr = Field(description="E.g. \"Belgium vs Senegal\".")
+    home_team: Optional[StrictStr] = None
+    away_team: Optional[StrictStr] = None
+    status: MatchStatus
+    score: Optional[Score] = None
+    kickoff_utc: Optional[datetime] = None
+    kickoff_local: Optional[StrictStr] = Field(default=None, description="Raw kickoff string as rendered by the source (debug/diagnostic aid).")
+    round: Optional[StrictStr] = None
+    channels: List[BroadcastChannel]
+    __properties: ClassVar[List[str]] = ["id", "title", "home_team", "away_team", "status", "score", "kickoff_utc", "kickoff_local", "round", "channels"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -53,7 +62,7 @@ class PulseSnapDomainResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PulseSnapDomainResponse from a JSON string"""
+        """Create an instance of ScheduledMatch from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,14 +83,56 @@ class PulseSnapDomainResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of data
-        if self.data:
-            _dict['data'] = self.data.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of score
+        if self.score:
+            _dict['score'] = self.score.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of each item in channels (list)
+        _items = []
+        if self.channels:
+            for _item_channels in self.channels:
+                if _item_channels:
+                    _items.append(_item_channels.to_dict())
+            _dict['channels'] = _items
+        # set to None if id (nullable) is None
+        # and model_fields_set contains the field
+        if self.id is None and "id" in self.model_fields_set:
+            _dict['id'] = None
+
+        # set to None if home_team (nullable) is None
+        # and model_fields_set contains the field
+        if self.home_team is None and "home_team" in self.model_fields_set:
+            _dict['home_team'] = None
+
+        # set to None if away_team (nullable) is None
+        # and model_fields_set contains the field
+        if self.away_team is None and "away_team" in self.model_fields_set:
+            _dict['away_team'] = None
+
+        # set to None if score (nullable) is None
+        # and model_fields_set contains the field
+        if self.score is None and "score" in self.model_fields_set:
+            _dict['score'] = None
+
+        # set to None if kickoff_utc (nullable) is None
+        # and model_fields_set contains the field
+        if self.kickoff_utc is None and "kickoff_utc" in self.model_fields_set:
+            _dict['kickoff_utc'] = None
+
+        # set to None if kickoff_local (nullable) is None
+        # and model_fields_set contains the field
+        if self.kickoff_local is None and "kickoff_local" in self.model_fields_set:
+            _dict['kickoff_local'] = None
+
+        # set to None if round (nullable) is None
+        # and model_fields_set contains the field
+        if self.round is None and "round" in self.model_fields_set:
+            _dict['round'] = None
+
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PulseSnapDomainResponse from a dict"""
+        """Create an instance of ScheduledMatch from a dict"""
         if obj is None:
             return None
 
@@ -89,10 +140,16 @@ class PulseSnapDomainResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "data": PulseDomainScanData.from_dict(obj["data"]) if obj.get("data") is not None else None,
-            "is_success": obj.get("is_success"),
-            "message": obj.get("message"),
-            "response_code": obj.get("response_code")
+            "id": obj.get("id"),
+            "title": obj.get("title"),
+            "home_team": obj.get("home_team"),
+            "away_team": obj.get("away_team"),
+            "status": obj.get("status"),
+            "score": Score.from_dict(obj["score"]) if obj.get("score") is not None else None,
+            "kickoff_utc": obj.get("kickoff_utc"),
+            "kickoff_local": obj.get("kickoff_local"),
+            "round": obj.get("round"),
+            "channels": [BroadcastChannel.from_dict(_item) for _item in obj["channels"]] if obj.get("channels") is not None else None
         })
         return _obj
 

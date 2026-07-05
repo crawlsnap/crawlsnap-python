@@ -18,22 +18,38 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional
-from crawlsnap.models.pulse_domain_scan_data import PulseDomainScanData
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PulseSnapDomainResponse(BaseModel):
+class MatchEvent(BaseModel):
     """
-    PulseSnapDomainResponse
+    MatchEvent
     """ # noqa: E501
-    data: Optional[PulseDomainScanData] = None
-    is_success: StrictBool = Field(description="True only when `data` contains usable enrichment.")
-    message: StrictStr = Field(description="Human-readable summary of the outcome.")
-    response_code: StrictInt = Field(description="Mirrors the HTTP status code.")
-    __properties: ClassVar[List[str]] = ["data", "is_success", "message", "response_code"]
+    minute: StrictStr = Field(description="Match minute as rendered, including stoppage notation, e.g. \"45+2\", \"120+5\".")
+    team: StrictStr
+    type: StrictStr
+    player: StrictStr = Field(description="For substitutions this is the player coming ON.")
+    player_out: Optional[StrictStr] = Field(default=None, description="Substitutions only; the player going off.")
+    assist: Optional[StrictStr] = Field(default=None, description="Goals only; assisting player when credited.")
+    running_score: Optional[StrictStr] = Field(default=None, description="Running score annotation after a goal, e.g. \"1 - 2\".")
+    __properties: ClassVar[List[str]] = ["minute", "team", "type", "player", "player_out", "assist", "running_score"]
+
+    @field_validator('team')
+    def team_validate_enum(cls, value):
+        """Validates the enum"""
+        if value not in set(['home', 'away']):
+            raise ValueError("must be one of enum values ('home', 'away')")
+        return value
+
+    @field_validator('type')
+    def type_validate_enum(cls, value):
+        """Validates the enum"""
+        if value not in set(['goal', 'own_goal', 'penalty_goal', 'yellow_card', 'red_card', 'substitution']):
+            raise ValueError("must be one of enum values ('goal', 'own_goal', 'penalty_goal', 'yellow_card', 'red_card', 'substitution')")
+        return value
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -53,7 +69,7 @@ class PulseSnapDomainResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PulseSnapDomainResponse from a JSON string"""
+        """Create an instance of MatchEvent from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,14 +90,26 @@ class PulseSnapDomainResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of data
-        if self.data:
-            _dict['data'] = self.data.to_dict()
+        # set to None if player_out (nullable) is None
+        # and model_fields_set contains the field
+        if self.player_out is None and "player_out" in self.model_fields_set:
+            _dict['player_out'] = None
+
+        # set to None if assist (nullable) is None
+        # and model_fields_set contains the field
+        if self.assist is None and "assist" in self.model_fields_set:
+            _dict['assist'] = None
+
+        # set to None if running_score (nullable) is None
+        # and model_fields_set contains the field
+        if self.running_score is None and "running_score" in self.model_fields_set:
+            _dict['running_score'] = None
+
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PulseSnapDomainResponse from a dict"""
+        """Create an instance of MatchEvent from a dict"""
         if obj is None:
             return None
 
@@ -89,10 +117,13 @@ class PulseSnapDomainResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "data": PulseDomainScanData.from_dict(obj["data"]) if obj.get("data") is not None else None,
-            "is_success": obj.get("is_success"),
-            "message": obj.get("message"),
-            "response_code": obj.get("response_code")
+            "minute": obj.get("minute"),
+            "team": obj.get("team"),
+            "type": obj.get("type"),
+            "player": obj.get("player"),
+            "player_out": obj.get("player_out"),
+            "assist": obj.get("assist"),
+            "running_score": obj.get("running_score")
         })
         return _obj
 

@@ -86,6 +86,7 @@ Every method is a coroutine; `scan_iter` is an async generator (use `async for`)
 | `vector_snap` | `url` · `hash` · `ip` · `domain` | reputation, detections, categories, relationships |
 | `pulse_snap`  | `url` · `hash` · `ip` · `domain` | threat-intelligence pulse (and sandbox) summary |
 | `subdo_snap`  | `scan` · `scan_iter` | enumerated subdomains (paginated) |
+| `sport_snap`  | `channel` · `channel_schedule` · `match` · `country_channels` · `daily_schedule` | live football TV listings: channels, schedules, match details |
 
 ```python
 url    = crawlsnap.vector_snap.url("https://example.com")
@@ -93,10 +94,24 @@ file   = crawlsnap.vector_snap.hash("44d88612fea8a8f36de82e1278abb02f")
 domain = crawlsnap.vector_snap.domain("google.com")
 
 pulse  = crawlsnap.pulse_snap.ip("8.8.8.8")
+
+channel  = crawlsnap.sport_snap.channel("bein-connect-turkey")
+schedule = crawlsnap.sport_snap.channel_schedule("bein-connect-turkey")
+match    = crawlsnap.sport_snap.match(5542814)
+channels = crawlsnap.sport_snap.country_channels("turkey")
+day      = crawlsnap.sport_snap.daily_schedule("2026-07-05")  # or datetime.date
 ```
 
-Every method takes the indicator as the first positional argument and accepts
-`raw_response=True` (see below).
+Every method takes its lookup value as the first positional argument and
+accepts `raw_response=True` (see below).
+
+`sport_snap` covers live football (soccer) TV listings: TV channel metadata
+and broadcast rights, channel broadcast schedules, match details with
+per-country broadcast coverage (score, events, statistics, and lineups for
+finished matches), country channel directories, and daily schedules grouped
+by competition. `match.status` is `scheduled`, `live`, or `finished` and
+discriminates how much of the payload is populated. Match ids are discovered
+via `daily_schedule` and `channel_schedule` entries.
 
 ## API versioning
 

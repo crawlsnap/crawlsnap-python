@@ -8,14 +8,22 @@ versioning rationale and the "adding a new API version" recipe.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, Optional, overload
+import datetime as _dt
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, Optional, Union, overload
+from urllib.parse import quote
 
 from typing_extensions import Literal
 
+from ._resources import _format_date
+from crawlsnap.models.channel_data import ChannelData
+from crawlsnap.models.channel_schedule_data import ChannelScheduleData
+from crawlsnap.models.country_channels_data import CountryChannelsData
+from crawlsnap.models.daily_schedule_data import DailyScheduleData
 from crawlsnap.models.ioc_domain_scan_data import IocDomainScanData
 from crawlsnap.models.ioc_hash_scan_data import IocHashScanData
 from crawlsnap.models.ioc_ip_scan_data import IocIpScanData
 from crawlsnap.models.ioc_url_scan_data import IocUrlScanData
+from crawlsnap.models.match_data import MatchData
 from crawlsnap.models.pulse_domain_scan_data import PulseDomainScanData
 from crawlsnap.models.pulse_hash_scan_data import PulseHashScanData
 from crawlsnap.models.pulse_ip_scan_data import PulseIpScanData
@@ -186,3 +194,84 @@ class AsyncSubdoSnap(_AsyncResource):
             cursor = page.cursor
             if not cursor:
                 break
+
+
+# --------------------------------------------------------------------------
+# SportSnap
+# --------------------------------------------------------------------------
+
+
+class AsyncSportSnap(_AsyncResource):
+    """Live football (soccer) TV listings (awaitable): channels, broadcast
+    schedules, match details with per-country coverage, and daily schedules."""
+
+    @property
+    def v1(self) -> "AsyncSportSnap":
+        return self._pinned("v1")
+
+    @overload
+    async def channel(self, slug: str, *, raw_response: Literal[False] = False) -> ChannelData: ...
+    @overload
+    async def channel(self, slug: str, *, raw_response: Literal[True]) -> "RawResponse": ...
+    async def channel(self, slug: str, *, raw_response: bool = False) -> Any:
+        """TV channel metadata and competition broadcast rights."""
+        return await self._client._request(
+            f"/{self._version}/sport-snap/channels/{quote(slug, safe='')}",
+            {},
+            ChannelData,
+            raw_response=raw_response,
+        )
+
+    @overload
+    async def channel_schedule(self, slug: str, *, raw_response: Literal[False] = False) -> ChannelScheduleData: ...
+    @overload
+    async def channel_schedule(self, slug: str, *, raw_response: Literal[True]) -> "RawResponse": ...
+    async def channel_schedule(self, slug: str, *, raw_response: bool = False) -> Any:
+        """Upcoming broadcast listings for a channel; ``entries`` may be empty."""
+        return await self._client._request(
+            f"/{self._version}/sport-snap/channels/{quote(slug, safe='')}/schedule",
+            {},
+            ChannelScheduleData,
+            raw_response=raw_response,
+        )
+
+    @overload
+    async def match(self, id: int, *, raw_response: Literal[False] = False) -> MatchData: ...
+    @overload
+    async def match(self, id: int, *, raw_response: Literal[True]) -> "RawResponse": ...
+    async def match(self, id: int, *, raw_response: bool = False) -> Any:
+        """Match details, per-country broadcast coverage, and result data."""
+        return await self._client._request(
+            f"/{self._version}/sport-snap/matches/{int(id)}",
+            {},
+            MatchData,
+            raw_response=raw_response,
+        )
+
+    @overload
+    async def country_channels(self, country: str, *, raw_response: Literal[False] = False) -> CountryChannelsData: ...
+    @overload
+    async def country_channels(self, country: str, *, raw_response: Literal[True]) -> "RawResponse": ...
+    async def country_channels(self, country: str, *, raw_response: bool = False) -> Any:
+        """TV channels known for a country (slugified name, e.g. ``turkey``)."""
+        return await self._client._request(
+            f"/{self._version}/sport-snap/countries/{quote(country, safe='')}/channels",
+            {},
+            CountryChannelsData,
+            raw_response=raw_response,
+        )
+
+    @overload
+    async def daily_schedule(self, date: Union[str, "_dt.date"], *, raw_response: Literal[False] = False) -> DailyScheduleData: ...
+    @overload
+    async def daily_schedule(self, date: Union[str, "_dt.date"], *, raw_response: Literal[True]) -> "RawResponse": ...
+    async def daily_schedule(self, date: Union[str, "_dt.date"], *, raw_response: bool = False) -> Any:
+        """Daily broadcast schedule grouped by competition.
+
+        Accepts ``YYYY-MM-DD`` or a :class:`datetime.date`."""
+        return await self._client._request(
+            f"/{self._version}/sport-snap/schedules/{quote(_format_date(date), safe='')}",
+            {},
+            DailyScheduleData,
+            raw_response=raw_response,
+        )

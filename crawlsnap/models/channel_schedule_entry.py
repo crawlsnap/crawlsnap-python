@@ -18,22 +18,27 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
+from datetime import date, datetime
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from crawlsnap.models.pulse_domain_scan_data import PulseDomainScanData
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PulseSnapDomainResponse(BaseModel):
+class ChannelScheduleEntry(BaseModel):
     """
-    PulseSnapDomainResponse
+    ChannelScheduleEntry
     """ # noqa: E501
-    data: Optional[PulseDomainScanData] = None
-    is_success: StrictBool = Field(description="True only when `data` contains usable enrichment.")
-    message: StrictStr = Field(description="Human-readable summary of the outcome.")
-    response_code: StrictInt = Field(description="Mirrors the HTTP status code.")
-    __properties: ClassVar[List[str]] = ["data", "is_success", "message", "response_code"]
+    var_date: date = Field(description="Listing day as rendered by the source (source-local calendar day).", alias="date")
+    kickoff_utc: Optional[datetime] = Field(default=None, description="Kickoff normalized to UTC; null if the time could not be parsed.")
+    kickoff_local: Optional[StrictStr] = Field(default=None, description="Raw kickoff string as rendered by the source (debug/diagnostic aid).")
+    match_id: Optional[StrictInt] = Field(default=None, description="Numeric match id usable with `/api/v1/matches/{id}`; null when the source link carried no id.")
+    match_title: StrictStr = Field(description="E.g. \"Brazil vs Norway\".")
+    home_team: Optional[StrictStr] = None
+    away_team: Optional[StrictStr] = None
+    round: Optional[StrictStr] = Field(default=None, description="Stage/round annotation, e.g. \"Round of 16\".")
+    competition: StrictStr
+    __properties: ClassVar[List[str]] = ["date", "kickoff_utc", "kickoff_local", "match_id", "match_title", "home_team", "away_team", "round", "competition"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -53,7 +58,7 @@ class PulseSnapDomainResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PulseSnapDomainResponse from a JSON string"""
+        """Create an instance of ChannelScheduleEntry from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,14 +79,41 @@ class PulseSnapDomainResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of data
-        if self.data:
-            _dict['data'] = self.data.to_dict()
+        # set to None if kickoff_utc (nullable) is None
+        # and model_fields_set contains the field
+        if self.kickoff_utc is None and "kickoff_utc" in self.model_fields_set:
+            _dict['kickoff_utc'] = None
+
+        # set to None if kickoff_local (nullable) is None
+        # and model_fields_set contains the field
+        if self.kickoff_local is None and "kickoff_local" in self.model_fields_set:
+            _dict['kickoff_local'] = None
+
+        # set to None if match_id (nullable) is None
+        # and model_fields_set contains the field
+        if self.match_id is None and "match_id" in self.model_fields_set:
+            _dict['match_id'] = None
+
+        # set to None if home_team (nullable) is None
+        # and model_fields_set contains the field
+        if self.home_team is None and "home_team" in self.model_fields_set:
+            _dict['home_team'] = None
+
+        # set to None if away_team (nullable) is None
+        # and model_fields_set contains the field
+        if self.away_team is None and "away_team" in self.model_fields_set:
+            _dict['away_team'] = None
+
+        # set to None if round (nullable) is None
+        # and model_fields_set contains the field
+        if self.round is None and "round" in self.model_fields_set:
+            _dict['round'] = None
+
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PulseSnapDomainResponse from a dict"""
+        """Create an instance of ChannelScheduleEntry from a dict"""
         if obj is None:
             return None
 
@@ -89,10 +121,15 @@ class PulseSnapDomainResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "data": PulseDomainScanData.from_dict(obj["data"]) if obj.get("data") is not None else None,
-            "is_success": obj.get("is_success"),
-            "message": obj.get("message"),
-            "response_code": obj.get("response_code")
+            "date": obj.get("date"),
+            "kickoff_utc": obj.get("kickoff_utc"),
+            "kickoff_local": obj.get("kickoff_local"),
+            "match_id": obj.get("match_id"),
+            "match_title": obj.get("match_title"),
+            "home_team": obj.get("home_team"),
+            "away_team": obj.get("away_team"),
+            "round": obj.get("round"),
+            "competition": obj.get("competition")
         })
         return _obj
 

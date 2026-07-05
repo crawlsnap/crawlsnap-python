@@ -4,7 +4,7 @@
 """
     CrawlSnap API
 
-    CrawlSnap is a data intelligence platform. It delivers structured, on-demand data through fast, typed HTTP APIs you can call from any language. This reference covers authentication, the response envelope, error handling, and the available CrawlSnap data products:    - **VectorSnap** — reputation, detections, categories, and relationships     for url / hash / ip / domain.   - **PulseSnap** — threat-intelligence pulse (and sandbox) enrichment for     url / hash / ip / domain.   - **SubdoSnap** — paginated subdomain enumeration for a domain.  ## Authentication  Authenticate every request with your CrawlSnap API key, sent as a Bearer token in the `Authorization` header:      Authorization: Bearer sk-cs-...  Create and rotate keys from your dashboard. Treat the key like a password: it carries your full quota and must stay secret. Never embed it in client-side code or commit it to source control.  ## Response envelope  Every response — success or error — uses the same envelope:  ```json {   \"data\": { ... },          // payload on success, null on failure   \"is_success\": true,        // authoritative success flag   \"message\": \"Success\",     // human-readable summary   \"response_code\": 200       // mirrors the HTTP status code } ```  Always check `is_success` before reading `data`.  ## Status codes  HTTP status codes follow standard REST semantics; the body `response_code` mirrors the HTTP status.    - **200** — success, `data` populated.   - **400** — invalid input (malformed URL / hash / IP / domain).   - **401** — missing or invalid API key.   - **402** — out of credits, or monthly quota exceeded.   - **403** — subscription is not active.   - **404** — no IoC data found for the supplied indicator.   - **429** — daily request limit exceeded.   - **5xx** — server error, or the upstream enrichment service was     unavailable / timed out. 
+    CrawlSnap is a data intelligence platform. It delivers structured, on-demand data through fast, typed HTTP APIs you can call from any language. This reference covers authentication, the response envelope, error handling, and the available CrawlSnap data products:    - **VectorSnap** — reputation, detections, categories, and relationships     for url / hash / ip / domain.   - **PulseSnap** — threat-intelligence pulse (and sandbox) enrichment for     url / hash / ip / domain.   - **SubdoSnap** — paginated subdomain enumeration for a domain.   - **SportSnap** — live football (soccer) TV listings: channel metadata     and broadcast schedules, match details with per-country coverage     (score, events, statistics, and lineups for finished matches),     country channel directories, and daily schedules.  ## Authentication  Authenticate every request with your CrawlSnap API key, sent as a Bearer token in the `Authorization` header:      Authorization: Bearer sk-cs-...  Create and rotate keys from your dashboard. Treat the key like a password: it carries your full quota and must stay secret. Never embed it in client-side code or commit it to source control.  ## Response envelope  Every response — success or error — uses the same envelope:  ```json {   \"data\": { ... },          // payload on success, null on failure   \"is_success\": true,        // authoritative success flag   \"message\": \"Success\",     // human-readable summary   \"response_code\": 200       // mirrors the HTTP status code } ```  Always check `is_success` before reading `data`.  ## Status codes  HTTP status codes follow standard REST semantics; the body `response_code` mirrors the HTTP status.    - **200** — success, `data` populated.   - **400** — invalid input (malformed query or path parameter).   - **401** — missing or invalid API key.   - **402** — out of credits, or monthly quota exceeded.   - **403** — subscription is not active.   - **404** — no data found for the supplied identifier.   - **429** — daily request limit exceeded.   - **5xx** — server error, or the upstream enrichment service was     unavailable / timed out. 
 
     The version of the OpenAPI document: 1.0.0
     Contact: support@crawlsnap.com
@@ -15,11 +15,28 @@
 
 # import models into model package
 from crawlsnap.models.base_response import BaseResponse
+from crawlsnap.models.broadcast_channel import BroadcastChannel
+from crawlsnap.models.broadcast_right import BroadcastRight
+from crawlsnap.models.channel_data import ChannelData
+from crawlsnap.models.channel_schedule_data import ChannelScheduleData
+from crawlsnap.models.channel_schedule_entry import ChannelScheduleEntry
+from crawlsnap.models.competition_ref import CompetitionRef
+from crawlsnap.models.competition_schedule import CompetitionSchedule
+from crawlsnap.models.country_broadcast import CountryBroadcast
+from crawlsnap.models.country_channel import CountryChannel
+from crawlsnap.models.country_channels_data import CountryChannelsData
+from crawlsnap.models.daily_schedule_data import DailyScheduleData
 from crawlsnap.models.error_response import ErrorResponse
 from crawlsnap.models.ioc_domain_scan_data import IocDomainScanData
 from crawlsnap.models.ioc_hash_scan_data import IocHashScanData
 from crawlsnap.models.ioc_ip_scan_data import IocIpScanData
 from crawlsnap.models.ioc_url_scan_data import IocUrlScanData
+from crawlsnap.models.lineup import Lineup
+from crawlsnap.models.lineups import Lineups
+from crawlsnap.models.match_data import MatchData
+from crawlsnap.models.match_event import MatchEvent
+from crawlsnap.models.match_stat import MatchStat
+from crawlsnap.models.match_status import MatchStatus
 from crawlsnap.models.pulse_domain_scan_data import PulseDomainScanData
 from crawlsnap.models.pulse_hash_scan_data import PulseHashScanData
 from crawlsnap.models.pulse_ip_scan_data import PulseIpScanData
@@ -28,8 +45,16 @@ from crawlsnap.models.pulse_snap_hash_response import PulseSnapHashResponse
 from crawlsnap.models.pulse_snap_ip_response import PulseSnapIpResponse
 from crawlsnap.models.pulse_snap_url_response import PulseSnapUrlResponse
 from crawlsnap.models.pulse_url_scan_data import PulseUrlScanData
+from crawlsnap.models.scheduled_match import ScheduledMatch
+from crawlsnap.models.score import Score
+from crawlsnap.models.sport_snap_channel_response import SportSnapChannelResponse
+from crawlsnap.models.sport_snap_channel_schedule_response import SportSnapChannelScheduleResponse
+from crawlsnap.models.sport_snap_country_channels_response import SportSnapCountryChannelsResponse
+from crawlsnap.models.sport_snap_daily_schedule_response import SportSnapDailyScheduleResponse
+from crawlsnap.models.sport_snap_match_response import SportSnapMatchResponse
 from crawlsnap.models.subdo_snap_scan_data import SubdoSnapScanData
 from crawlsnap.models.subdo_snap_scan_response import SubdoSnapScanResponse
+from crawlsnap.models.team_ref import TeamRef
 from crawlsnap.models.vector_snap_domain_response import VectorSnapDomainResponse
 from crawlsnap.models.vector_snap_hash_response import VectorSnapHashResponse
 from crawlsnap.models.vector_snap_ip_response import VectorSnapIpResponse

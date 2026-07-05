@@ -18,22 +18,26 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
+from datetime import datetime
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from crawlsnap.models.pulse_domain_scan_data import PulseDomainScanData
+from crawlsnap.models.broadcast_right import BroadcastRight
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PulseSnapDomainResponse(BaseModel):
+class ChannelData(BaseModel):
     """
-    PulseSnapDomainResponse
+    ChannelData
     """ # noqa: E501
-    data: Optional[PulseDomainScanData] = None
-    is_success: StrictBool = Field(description="True only when `data` contains usable enrichment.")
-    message: StrictStr = Field(description="Human-readable summary of the outcome.")
-    response_code: StrictInt = Field(description="Mirrors the HTTP status code.")
-    __properties: ClassVar[List[str]] = ["data", "is_success", "message", "response_code"]
+    slug: StrictStr
+    name: StrictStr = Field(description="Channel display name, e.g. \"beIN CONNECT Turkey\".")
+    country: Optional[StrictStr] = Field(default=None, description="Country the channel belongs to, when the source states it.")
+    about: Optional[StrictStr] = Field(default=None, description="Free-text channel description from the source's About section.")
+    website: Optional[StrictStr] = Field(default=None, description="The channel's own website, when linked.")
+    broadcast_rights: List[BroadcastRight]
+    updated_at: datetime
+    __properties: ClassVar[List[str]] = ["slug", "name", "country", "about", "website", "broadcast_rights", "updated_at"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -53,7 +57,7 @@ class PulseSnapDomainResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PulseSnapDomainResponse from a JSON string"""
+        """Create an instance of ChannelData from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,14 +78,33 @@ class PulseSnapDomainResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of data
-        if self.data:
-            _dict['data'] = self.data.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of each item in broadcast_rights (list)
+        _items = []
+        if self.broadcast_rights:
+            for _item_broadcast_rights in self.broadcast_rights:
+                if _item_broadcast_rights:
+                    _items.append(_item_broadcast_rights.to_dict())
+            _dict['broadcast_rights'] = _items
+        # set to None if country (nullable) is None
+        # and model_fields_set contains the field
+        if self.country is None and "country" in self.model_fields_set:
+            _dict['country'] = None
+
+        # set to None if about (nullable) is None
+        # and model_fields_set contains the field
+        if self.about is None and "about" in self.model_fields_set:
+            _dict['about'] = None
+
+        # set to None if website (nullable) is None
+        # and model_fields_set contains the field
+        if self.website is None and "website" in self.model_fields_set:
+            _dict['website'] = None
+
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PulseSnapDomainResponse from a dict"""
+        """Create an instance of ChannelData from a dict"""
         if obj is None:
             return None
 
@@ -89,10 +112,13 @@ class PulseSnapDomainResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "data": PulseDomainScanData.from_dict(obj["data"]) if obj.get("data") is not None else None,
-            "is_success": obj.get("is_success"),
-            "message": obj.get("message"),
-            "response_code": obj.get("response_code")
+            "slug": obj.get("slug"),
+            "name": obj.get("name"),
+            "country": obj.get("country"),
+            "about": obj.get("about"),
+            "website": obj.get("website"),
+            "broadcast_rights": [BroadcastRight.from_dict(_item) for _item in obj["broadcast_rights"]] if obj.get("broadcast_rights") is not None else None,
+            "updated_at": obj.get("updated_at")
         })
         return _obj
 

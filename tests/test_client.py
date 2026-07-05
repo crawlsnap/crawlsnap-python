@@ -61,6 +61,53 @@ def _make_handler():
             if not params.get("cursor"):
                 return _ok({"hash_id": "h", "search_type": "domain", "subdomains": [{"subdomain": "a.example.com"}], "cursor": "c1", "count": 2})
             return _ok({"hash_id": "h", "search_type": "domain", "subdomains": [{"subdomain": "b.example.com"}], "cursor": "", "count": 2})
+        if path == "/v1/sport-snap/channels/bein-connect-turkey":
+            return _ok({
+                "slug": "bein-connect-turkey", "name": "beIN CONNECT Turkey",
+                "country": "Turkey",
+                "broadcast_rights": [{"competition": "England - Premier League", "year_start": 2024, "year_end": 2027}],
+                "updated_at": "2026-07-05T10:00:00Z",
+            })
+        if path == "/v1/sport-snap/channels/bein-connect-turkey/schedule":
+            return _ok({
+                "slug": "bein-connect-turkey", "name": "beIN CONNECT Turkey",
+                "entries": [{
+                    "date": "2026-07-06", "kickoff_utc": "2026-07-06T19:00:00Z",
+                    "match_id": 5542814, "match_title": "Brazil vs Norway",
+                    "competition": "Friendly",
+                }],
+                "updated_at": "2026-07-05T10:00:00Z",
+            })
+        if path == "/v1/sport-snap/matches/5542814":
+            return _ok({
+                "id": 5542814, "status": "finished",
+                "competition": {"name": "Friendly"},
+                "home_team": {"name": "Brazil"}, "away_team": {"name": "Norway"},
+                "score": {"home": 2, "away": 1},
+                "events": [], "stats": [],
+                "broadcasts": [{"country": "Turkey", "country_slug": "turkey",
+                                "channels": [{"name": "beIN CONNECT Turkey", "slug": "bein-connect-turkey"}]}],
+                "updated_at": "2026-07-05T10:00:00Z",
+            })
+        if path == "/v1/sport-snap/matches/404":
+            return _err(404, "Unknown match id")
+        if path == "/v1/sport-snap/countries/turkey/channels":
+            return _ok({
+                "country": "Turkey", "country_slug": "turkey",
+                "channels": [{"name": "beIN CONNECT Turkey", "slug": "bein-connect-turkey",
+                              "last_seen": "2026-07-05T10:00:00Z"}],
+                "updated_at": "2026-07-05T10:00:00Z",
+            })
+        if path == "/v1/sport-snap/schedules/2026-07-05":
+            return _ok({
+                "date": "2026-07-05",
+                "competitions": [{"competition": "Friendly", "matches": [{
+                    "id": 5542814, "title": "Brazil vs Norway", "status": "scheduled",
+                    "kickoff_utc": "2026-07-06T19:00:00Z",
+                    "channels": [{"name": "beIN CONNECT Turkey", "slug": "bein-connect-turkey"}],
+                }]}],
+                "updated_at": "2026-07-05T10:00:00Z",
+            })
         return httpx.Response(500, json={"data": None, "is_success": False, "message": f"unexpected {path}", "response_code": 500})
 
     return handler, state
@@ -161,6 +208,64 @@ def test_default_version_is_stable_not_latest():
 
 
 # --------------------------------------------------------------------------
+# SportSnap
+# --------------------------------------------------------------------------
+
+
+def test_sport_snap_channel():
+    client, _ = _client()
+    ch = client.sport_snap.channel("bein-connect-turkey")
+    assert ch.slug == "bein-connect-turkey"
+    assert ch.broadcast_rights[0].competition == "England - Premier League"
+    assert ch.broadcast_rights[0].year_end == 2027
+
+
+def test_sport_snap_channel_schedule():
+    client, _ = _client()
+    sched = client.sport_snap.channel_schedule("bein-connect-turkey")
+    assert sched.entries[0].match_id == 5542814
+    assert sched.entries[0].match_title == "Brazil vs Norway"
+
+
+def test_sport_snap_match():
+    client, _ = _client()
+    match = client.sport_snap.match(5542814)
+    assert match.status == "finished"
+    assert match.score.home == 2 and match.score.away == 1
+    assert match.broadcasts[0].country_slug == "turkey"
+    assert match.broadcasts[0].channels[0].slug == "bein-connect-turkey"
+
+
+def test_sport_snap_match_not_found():
+    client, _ = _client()
+    with pytest.raises(NotFoundError):
+        client.sport_snap.match(404)
+
+
+def test_sport_snap_country_channels():
+    client, _ = _client()
+    cc = client.sport_snap.country_channels("turkey")
+    assert cc.country == "Turkey"
+    assert cc.channels[0].slug == "bein-connect-turkey"
+
+
+def test_sport_snap_daily_schedule_accepts_date_object():
+    import datetime
+
+    client, _ = _client()
+    day = client.sport_snap.daily_schedule(datetime.date(2026, 7, 5))
+    assert day.competitions[0].matches[0].title == "Brazil vs Norway"
+    # Same endpoint via a plain string.
+    assert client.sport_snap.daily_schedule("2026-07-05").competitions[0].competition == "Friendly"
+
+
+def test_sport_snap_version_pinning():
+    client, _ = _client()
+    assert client.sport_snap.v1.channel("bein-connect-turkey").slug == "bein-connect-turkey"
+    assert client.sport_snap.v1 is client.sport_snap.v1
+
+
+# --------------------------------------------------------------------------
 # Async client — same surface, awaitable.
 # --------------------------------------------------------------------------
 
@@ -219,6 +324,19 @@ def test_async_pagination_iterates_all_pages():
         try:
             out = [sub async for sub in client.subdo_snap.scan_iter("example.com")]
             assert out == [{"subdomain": "a.example.com"}, {"subdomain": "b.example.com"}]
+        finally:
+            await client.close()
+
+    asyncio.run(run())
+
+
+def test_async_sport_snap_match():
+    async def run():
+        client, _ = _async_client()
+        try:
+            match = await client.sport_snap.match(5542814)
+            assert match.status == "finished"
+            assert match.home_team.name == "Brazil"
         finally:
             await client.close()
 

@@ -1,6 +1,6 @@
 """Resource groups exposed on the client: ``vector_snap``, ``pulse_snap``,
-``subdo_snap``. Each method submits one indicator and returns the typed
-enrichment payload (the unwrapped ``data``), or raises a typed exception.
+``subdo_snap``, ``sport_snap``. Each method submits one lookup and returns the
+typed payload (the unwrapped ``data``), or raises a typed exception.
 
 Per-API versioning (version is data, not a class hierarchy)
 -----------------------------------------------------------
@@ -30,14 +30,21 @@ Adding a new API version (e.g. VectorSnap v2)
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, overload
+import datetime as _dt
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Union, overload
+from urllib.parse import quote
 
 from typing_extensions import Literal
 
+from crawlsnap.models.channel_data import ChannelData
+from crawlsnap.models.channel_schedule_data import ChannelScheduleData
+from crawlsnap.models.country_channels_data import CountryChannelsData
+from crawlsnap.models.daily_schedule_data import DailyScheduleData
 from crawlsnap.models.ioc_domain_scan_data import IocDomainScanData
 from crawlsnap.models.ioc_hash_scan_data import IocHashScanData
 from crawlsnap.models.ioc_ip_scan_data import IocIpScanData
 from crawlsnap.models.ioc_url_scan_data import IocUrlScanData
+from crawlsnap.models.match_data import MatchData
 from crawlsnap.models.pulse_domain_scan_data import PulseDomainScanData
 from crawlsnap.models.pulse_hash_scan_data import PulseHashScanData
 from crawlsnap.models.pulse_ip_scan_data import PulseIpScanData
@@ -219,3 +226,98 @@ class SubdoSnap(_Resource):
             cursor = page.cursor
             if not cursor:
                 break
+
+
+# --------------------------------------------------------------------------
+# SportSnap
+# --------------------------------------------------------------------------
+
+
+def _format_date(date: Union[str, "_dt.date"]) -> str:
+    """Render a schedule date as ``YYYY-MM-DD`` (accepts str or datetime.date)."""
+    if isinstance(date, _dt.date):
+        return date.isoformat()
+    return date
+
+
+class SportSnap(_Resource):
+    """Live football (soccer) TV listings: channels, broadcast schedules,
+    match details with per-country coverage, and daily schedules.
+
+    A direct call uses the stable default version; pin explicitly via
+    :attr:`v1`."""
+
+    @property
+    def v1(self) -> "SportSnap":
+        return self._pinned("v1")
+
+    @overload
+    def channel(self, slug: str, *, raw_response: Literal[False] = False) -> ChannelData: ...
+    @overload
+    def channel(self, slug: str, *, raw_response: Literal[True]) -> "RawResponse": ...
+    def channel(self, slug: str, *, raw_response: bool = False) -> Any:
+        """TV channel metadata and competition broadcast rights."""
+        return self._client._request(
+            f"/{self._version}/sport-snap/channels/{quote(slug, safe='')}",
+            {},
+            ChannelData,
+            raw_response=raw_response,
+        )
+
+    @overload
+    def channel_schedule(self, slug: str, *, raw_response: Literal[False] = False) -> ChannelScheduleData: ...
+    @overload
+    def channel_schedule(self, slug: str, *, raw_response: Literal[True]) -> "RawResponse": ...
+    def channel_schedule(self, slug: str, *, raw_response: bool = False) -> Any:
+        """Upcoming broadcast listings for a channel; ``entries`` may be empty."""
+        return self._client._request(
+            f"/{self._version}/sport-snap/channels/{quote(slug, safe='')}/schedule",
+            {},
+            ChannelScheduleData,
+            raw_response=raw_response,
+        )
+
+    @overload
+    def match(self, id: int, *, raw_response: Literal[False] = False) -> MatchData: ...
+    @overload
+    def match(self, id: int, *, raw_response: Literal[True]) -> "RawResponse": ...
+    def match(self, id: int, *, raw_response: bool = False) -> Any:
+        """Match details, per-country broadcast coverage, and result data.
+
+        ``status`` discriminates the payload: ``scheduled`` carries meta +
+        broadcasts only; ``live``/``finished`` add score, events, statistics,
+        and lineups as available."""
+        return self._client._request(
+            f"/{self._version}/sport-snap/matches/{int(id)}",
+            {},
+            MatchData,
+            raw_response=raw_response,
+        )
+
+    @overload
+    def country_channels(self, country: str, *, raw_response: Literal[False] = False) -> CountryChannelsData: ...
+    @overload
+    def country_channels(self, country: str, *, raw_response: Literal[True]) -> "RawResponse": ...
+    def country_channels(self, country: str, *, raw_response: bool = False) -> Any:
+        """TV channels known for a country (slugified name, e.g. ``turkey``)."""
+        return self._client._request(
+            f"/{self._version}/sport-snap/countries/{quote(country, safe='')}/channels",
+            {},
+            CountryChannelsData,
+            raw_response=raw_response,
+        )
+
+    @overload
+    def daily_schedule(self, date: Union[str, "_dt.date"], *, raw_response: Literal[False] = False) -> DailyScheduleData: ...
+    @overload
+    def daily_schedule(self, date: Union[str, "_dt.date"], *, raw_response: Literal[True]) -> "RawResponse": ...
+    def daily_schedule(self, date: Union[str, "_dt.date"], *, raw_response: bool = False) -> Any:
+        """Daily broadcast schedule grouped by competition.
+
+        Accepts ``YYYY-MM-DD`` or a :class:`datetime.date`."""
+        return self._client._request(
+            f"/{self._version}/sport-snap/schedules/{quote(_format_date(date), safe='')}",
+            {},
+            DailyScheduleData,
+            raw_response=raw_response,
+        )
