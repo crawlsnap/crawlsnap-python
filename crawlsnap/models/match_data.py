@@ -19,7 +19,7 @@ import re  # noqa: F401
 import json
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
 from crawlsnap.models.competition_ref import CompetitionRef
 from crawlsnap.models.country_broadcast import CountryBroadcast
@@ -43,8 +43,10 @@ class MatchData(BaseModel):
     round: Optional[StrictStr] = None
     home_team: TeamRef
     away_team: TeamRef
+    is_placeholder: StrictBool = Field(description="True when at least one side is an undecided knockout-bracket slot (the source renders placeholders like \"W93\" or \"L101\" until the pairing is known).")
     kickoff_utc: Optional[datetime] = Field(default=None, description="Kickoff normalized to UTC; null if the time could not be parsed.")
-    kickoff_local: Optional[StrictStr] = Field(default=None, description="Raw kickoff string as rendered by the source (debug/diagnostic aid).")
+    kickoff_local: Optional[StrictStr] = Field(default=None, description="Kickoff date+time in the source's rendering zone, cleaned of live/status markers (e.g. \"Jul 5, 2026 16:00\"); null if the time could not be parsed.")
+    kickoff_raw: Optional[StrictStr] = Field(default=None, description="Raw kickoff header exactly as rendered by the source — debug/diagnostic aid.")
     venue: Optional[StrictStr] = None
     score: Optional[Score] = None
     events: Optional[List[MatchEvent]] = Field(default=None, description="Empty for scheduled matches.")
@@ -53,7 +55,7 @@ class MatchData(BaseModel):
     broadcasts: List[CountryBroadcast] = Field(description="Per-country broadcast coverage from the source's international coverage table.")
     highlights_url: Optional[StrictStr] = Field(default=None, description="Official highlights link for finished matches, when present.")
     updated_at: datetime
-    __properties: ClassVar[List[str]] = ["id", "status", "competition", "round", "home_team", "away_team", "kickoff_utc", "kickoff_local", "venue", "score", "events", "stats", "lineups", "broadcasts", "highlights_url", "updated_at"]
+    __properties: ClassVar[List[str]] = ["id", "status", "competition", "round", "home_team", "away_team", "is_placeholder", "kickoff_utc", "kickoff_local", "kickoff_raw", "venue", "score", "events", "stats", "lineups", "broadcasts", "highlights_url", "updated_at"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -145,6 +147,11 @@ class MatchData(BaseModel):
         if self.kickoff_local is None and "kickoff_local" in self.model_fields_set:
             _dict['kickoff_local'] = None
 
+        # set to None if kickoff_raw (nullable) is None
+        # and model_fields_set contains the field
+        if self.kickoff_raw is None and "kickoff_raw" in self.model_fields_set:
+            _dict['kickoff_raw'] = None
+
         # set to None if venue (nullable) is None
         # and model_fields_set contains the field
         if self.venue is None and "venue" in self.model_fields_set:
@@ -183,8 +190,10 @@ class MatchData(BaseModel):
             "round": obj.get("round"),
             "home_team": TeamRef.from_dict(obj["home_team"]) if obj.get("home_team") is not None else None,
             "away_team": TeamRef.from_dict(obj["away_team"]) if obj.get("away_team") is not None else None,
+            "is_placeholder": obj.get("is_placeholder"),
             "kickoff_utc": obj.get("kickoff_utc"),
             "kickoff_local": obj.get("kickoff_local"),
+            "kickoff_raw": obj.get("kickoff_raw"),
             "venue": obj.get("venue"),
             "score": Score.from_dict(obj["score"]) if obj.get("score") is not None else None,
             "events": [MatchEvent.from_dict(_item) for _item in obj["events"]] if obj.get("events") is not None else None,

@@ -74,13 +74,14 @@ def _make_handler():
                 "entries": [{
                     "date": "2026-07-06", "kickoff_utc": "2026-07-06T19:00:00Z",
                     "match_id": 5542814, "match_title": "Brazil vs Norway",
-                    "competition": "Friendly",
+                    "competition": "Friendly", "is_placeholder": False,
+                    "kickoff_local": "10:00pm", "kickoff_raw": "10:00pm",
                 }],
                 "updated_at": "2026-07-05T10:00:00Z",
             })
         if path == "/v1/sport-snap/matches/5542814":
             return _ok({
-                "id": 5542814, "status": "finished",
+                "id": 5542814, "status": "finished", "is_placeholder": False,
                 "competition": {"name": "Friendly"},
                 "home_team": {"name": "Brazil"}, "away_team": {"name": "Norway"},
                 "score": {"home": 2, "away": 1},
@@ -103,7 +104,7 @@ def _make_handler():
                 "date": "2026-07-05",
                 "competitions": [{"competition": "Friendly", "matches": [{
                     "id": 5542814, "title": "Brazil vs Norway", "status": "scheduled",
-                    "kickoff_utc": "2026-07-06T19:00:00Z",
+                    "is_placeholder": False, "kickoff_utc": "2026-07-06T19:00:00Z",
                     "channels": [{"name": "beIN CONNECT Turkey", "slug": "bein-connect-turkey"}],
                 }]}],
                 "updated_at": "2026-07-05T10:00:00Z",
@@ -225,6 +226,9 @@ def test_sport_snap_channel_schedule():
     sched = client.sport_snap.channel_schedule("bein-connect-turkey")
     assert sched.entries[0].match_id == 5542814
     assert sched.entries[0].match_title == "Brazil vs Norway"
+    assert sched.entries[0].is_placeholder is False
+    assert sched.entries[0].kickoff_local == "10:00pm"
+    assert sched.entries[0].kickoff_raw == "10:00pm"
 
 
 def test_sport_snap_match():

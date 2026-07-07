@@ -19,7 +19,7 @@ import re  # noqa: F401
 import json
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
 from crawlsnap.models.broadcast_channel import BroadcastChannel
 from crawlsnap.models.match_status import MatchStatus
@@ -36,13 +36,15 @@ class ScheduledMatch(BaseModel):
     title: StrictStr = Field(description="E.g. \"Belgium vs Senegal\".")
     home_team: Optional[StrictStr] = None
     away_team: Optional[StrictStr] = None
+    is_placeholder: StrictBool = Field(description="True when at least one side is an undecided knockout-bracket slot (the source renders placeholders like \"W93\" or \"L101\" until the pairing is known).")
     status: MatchStatus
     score: Optional[Score] = None
     kickoff_utc: Optional[datetime] = None
-    kickoff_local: Optional[StrictStr] = Field(default=None, description="Raw kickoff string as rendered by the source (debug/diagnostic aid).")
+    kickoff_local: Optional[StrictStr] = Field(default=None, description="Kickoff clock in the source's rendering zone, cleaned of live/status markers (e.g. \"4:00pm\", \"20:45\"); null if the time could not be parsed.")
+    kickoff_raw: Optional[StrictStr] = Field(default=None, description="Raw time cell exactly as rendered by the source, including any live badge and status suffix (e.g. \"Live+  4:00pm86'\") — debug/diagnostic aid.")
     round: Optional[StrictStr] = None
     channels: List[BroadcastChannel]
-    __properties: ClassVar[List[str]] = ["id", "title", "home_team", "away_team", "status", "score", "kickoff_utc", "kickoff_local", "round", "channels"]
+    __properties: ClassVar[List[str]] = ["id", "title", "home_team", "away_team", "is_placeholder", "status", "score", "kickoff_utc", "kickoff_local", "kickoff_raw", "round", "channels"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -123,6 +125,11 @@ class ScheduledMatch(BaseModel):
         if self.kickoff_local is None and "kickoff_local" in self.model_fields_set:
             _dict['kickoff_local'] = None
 
+        # set to None if kickoff_raw (nullable) is None
+        # and model_fields_set contains the field
+        if self.kickoff_raw is None and "kickoff_raw" in self.model_fields_set:
+            _dict['kickoff_raw'] = None
+
         # set to None if round (nullable) is None
         # and model_fields_set contains the field
         if self.round is None and "round" in self.model_fields_set:
@@ -144,10 +151,12 @@ class ScheduledMatch(BaseModel):
             "title": obj.get("title"),
             "home_team": obj.get("home_team"),
             "away_team": obj.get("away_team"),
+            "is_placeholder": obj.get("is_placeholder"),
             "status": obj.get("status"),
             "score": Score.from_dict(obj["score"]) if obj.get("score") is not None else None,
             "kickoff_utc": obj.get("kickoff_utc"),
             "kickoff_local": obj.get("kickoff_local"),
+            "kickoff_raw": obj.get("kickoff_raw"),
             "round": obj.get("round"),
             "channels": [BroadcastChannel.from_dict(_item) for _item in obj["channels"]] if obj.get("channels") is not None else None
         })

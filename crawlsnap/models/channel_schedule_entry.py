@@ -19,7 +19,7 @@ import re  # noqa: F401
 import json
 
 from datetime import date, datetime
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
 from typing import Optional, Set
 from typing_extensions import Self
@@ -31,14 +31,16 @@ class ChannelScheduleEntry(BaseModel):
     """ # noqa: E501
     var_date: date = Field(description="Listing day as rendered by the source (source-local calendar day).", alias="date")
     kickoff_utc: Optional[datetime] = Field(default=None, description="Kickoff normalized to UTC; null if the time could not be parsed.")
-    kickoff_local: Optional[StrictStr] = Field(default=None, description="Raw kickoff string as rendered by the source (debug/diagnostic aid).")
+    kickoff_local: Optional[StrictStr] = Field(default=None, description="Kickoff clock in the source's rendering zone, cleaned of live/status markers (e.g. \"4:00pm\", \"20:45\"); null if the time could not be parsed.")
+    kickoff_raw: Optional[StrictStr] = Field(default=None, description="Raw time cell exactly as rendered by the source, including any live badge and status suffix (e.g. \"Live+  4:00pm86'\") — debug/diagnostic aid.")
     match_id: Optional[StrictInt] = Field(default=None, description="Numeric match id usable with `/api/v1/matches/{id}`; null when the source link carried no id.")
     match_title: StrictStr = Field(description="E.g. \"Brazil vs Norway\".")
     home_team: Optional[StrictStr] = None
     away_team: Optional[StrictStr] = None
+    is_placeholder: StrictBool = Field(description="True when at least one side is an undecided knockout-bracket slot (the source renders placeholders like \"W93\" or \"L101\" until the pairing is known).")
     round: Optional[StrictStr] = Field(default=None, description="Stage/round annotation, e.g. \"Round of 16\".")
     competition: StrictStr
-    __properties: ClassVar[List[str]] = ["date", "kickoff_utc", "kickoff_local", "match_id", "match_title", "home_team", "away_team", "round", "competition"]
+    __properties: ClassVar[List[str]] = ["date", "kickoff_utc", "kickoff_local", "kickoff_raw", "match_id", "match_title", "home_team", "away_team", "is_placeholder", "round", "competition"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -89,6 +91,11 @@ class ChannelScheduleEntry(BaseModel):
         if self.kickoff_local is None and "kickoff_local" in self.model_fields_set:
             _dict['kickoff_local'] = None
 
+        # set to None if kickoff_raw (nullable) is None
+        # and model_fields_set contains the field
+        if self.kickoff_raw is None and "kickoff_raw" in self.model_fields_set:
+            _dict['kickoff_raw'] = None
+
         # set to None if match_id (nullable) is None
         # and model_fields_set contains the field
         if self.match_id is None and "match_id" in self.model_fields_set:
@@ -124,10 +131,12 @@ class ChannelScheduleEntry(BaseModel):
             "date": obj.get("date"),
             "kickoff_utc": obj.get("kickoff_utc"),
             "kickoff_local": obj.get("kickoff_local"),
+            "kickoff_raw": obj.get("kickoff_raw"),
             "match_id": obj.get("match_id"),
             "match_title": obj.get("match_title"),
             "home_team": obj.get("home_team"),
             "away_team": obj.get("away_team"),
+            "is_placeholder": obj.get("is_placeholder"),
             "round": obj.get("round"),
             "competition": obj.get("competition")
         })
