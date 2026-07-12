@@ -59,11 +59,24 @@ from crawlsnap.models.pulse_hash_scan_data import PulseHashScanData
 from crawlsnap.models.pulse_ip_scan_data import PulseIpScanData
 from crawlsnap.models.pulse_url_scan_data import PulseUrlScanData
 from crawlsnap.models.subdo_snap_scan_data import SubdoSnapScanData
-from crawlsnap.models.channel_data import ChannelData
-from crawlsnap.models.channel_schedule_data import ChannelScheduleData
-from crawlsnap.models.country_channels_data import CountryChannelsData
-from crawlsnap.models.daily_schedule_data import DailyScheduleData
+from crawlsnap.models.all_teams_data import AllTeamsData
+from crawlsnap.models.channel_info_data import ChannelInfoData
+from crawlsnap.models.channel_repeats_data import ChannelRepeatsData
+from crawlsnap.models.channels_data import ChannelsData
+from crawlsnap.models.competition_detail_data import CompetitionDetailData
+from crawlsnap.models.competition_tables_data import CompetitionTablesData
+from crawlsnap.models.competition_tv_rights_data import CompetitionTvRightsData
+from crawlsnap.models.competition_twitter_data import CompetitionTwitterData
+from crawlsnap.models.competitions_data import CompetitionsData
+from crawlsnap.models.livescores_data import LivescoresData
 from crawlsnap.models.match_data import MatchData
+from crawlsnap.models.matches_data import MatchesData
+from crawlsnap.models.news_detail_data import NewsDetailData
+from crawlsnap.models.news_list_data import NewsListData
+from crawlsnap.models.player_data import PlayerData
+from crawlsnap.models.popular_teams_data import PopularTeamsData
+from crawlsnap.models.search_data import SearchData
+from crawlsnap.models.team_detail_data import TeamDetailData
 
 _default_client: Optional[CrawlSnap] = None
 
@@ -130,9 +143,23 @@ __all__ = [
     "PulseIpScanData",
     "PulseDomainScanData",
     "SubdoSnapScanData",
-    "ChannelData",
-    "ChannelScheduleData",
+    # SportSnap response models
+    "LivescoresData",
+    "MatchesData",
     "MatchData",
-    "CountryChannelsData",
-    "DailyScheduleData",
+    "CompetitionsData",
+    "CompetitionDetailData",
+    "CompetitionTablesData",
+    "CompetitionTvRightsData",
+    "CompetitionTwitterData",
+    "PopularTeamsData",
+    "AllTeamsData",
+    "TeamDetailData",
+    "ChannelsData",
+    "ChannelInfoData",
+    "ChannelRepeatsData",
+    "NewsListData",
+    "NewsDetailData",
+    "SearchData",
+    "PlayerData",
 ]

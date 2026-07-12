@@ -61,54 +61,53 @@ def _make_handler():
             if not params.get("cursor"):
                 return _ok({"hash_id": "h", "search_type": "domain", "subdomains": [{"subdomain": "a.example.com"}], "cursor": "c1", "count": 2})
             return _ok({"hash_id": "h", "search_type": "domain", "subdomains": [{"subdomain": "b.example.com"}], "cursor": "", "count": 2})
-        if path == "/v1/sport-snap/channels/bein-connect-turkey":
+        if path == "/v1/sport-snap/livescores":
             return _ok({
-                "slug": "bein-connect-turkey", "name": "beIN CONNECT Turkey",
-                "country": "Turkey",
-                "broadcast_rights": [{"competition": "England - Premier League", "year_start": 2024, "year_end": 2027}],
-                "updated_at": "2026-07-05T10:00:00Z",
+                "sport": "soccer", "updated": "2026-07-05 10:00:00",
+                "matches": [{"id": "5542814", "game": "Brazil vs Norway", "result": "2 - 1", "status": "FT"}],
             })
-        if path == "/v1/sport-snap/channels/bein-connect-turkey/schedule":
+        if path == "/v1/sport-snap/matches":
             return _ok({
-                "slug": "bein-connect-turkey", "name": "beIN CONNECT Turkey",
-                "entries": [{
-                    "date": "2026-07-06", "kickoff_utc": "2026-07-06T19:00:00Z",
-                    "match_id": 5542814, "match_title": "Brazil vs Norway",
-                    "competition": "Friendly", "is_placeholder": False,
-                    "kickoff_local": "10:00pm", "kickoff_raw": "10:00pm",
+                "competitions": [{
+                    "competition": "Friendly",
+                    "fixtures": [{"fixture_id": "5542814", "team1_name": "Brazil", "team2_name": "Norway"}],
                 }],
-                "updated_at": "2026-07-05T10:00:00Z",
             })
-        if path == "/v1/sport-snap/matches/5542814":
+        if path == "/v1/sport-snap/match/5542814":
             return _ok({
-                "id": 5542814, "status": "finished", "is_placeholder": False,
-                "competition": {"name": "Friendly"},
-                "home_team": {"name": "Brazil"}, "away_team": {"name": "Norway"},
-                "score": {"home": 2, "away": 1},
-                "events": [], "stats": [],
-                "broadcasts": [{"country": "Turkey", "country_slug": "turkey",
-                                "channels": [{"name": "beIN CONNECT Turkey", "slug": "bein-connect-turkey"}]}],
-                "updated_at": "2026-07-05T10:00:00Z",
+                "competition": {"competition": "Friendly", "slug": "friendly"},
+                "fixture": {"fixture_id": "5542814", "game": "Brazil vs Norway", "status": "FT", "result": "2 - 1"},
             })
-        if path == "/v1/sport-snap/matches/404":
+        if path == "/v1/sport-snap/match/404":
             return _err(404, "Unknown match id")
-        if path == "/v1/sport-snap/countries/turkey/channels":
+        if path == "/v1/sport-snap/competitions":
             return _ok({
-                "country": "Turkey", "country_slug": "turkey",
-                "channels": [{"name": "beIN CONNECT Turkey", "slug": "bein-connect-turkey",
-                              "last_seen": "2026-07-05T10:00:00Z"}],
-                "updated_at": "2026-07-05T10:00:00Z",
+                "competitions": {
+                    "comp_popular": [{"competition_id": "1", "name": "Premier League", "slug": "premier-league", "country": "England"}],
+                },
             })
-        if path == "/v1/sport-snap/schedules/2026-07-05":
+        if path == "/v1/sport-snap/competitions/england/premier-league":
             return _ok({
-                "date": "2026-07-05",
-                "competitions": [{"competition": "Friendly", "matches": [{
-                    "id": 5542814, "title": "Brazil vs Norway", "status": "scheduled",
-                    "is_placeholder": False, "kickoff_utc": "2026-07-06T19:00:00Z",
-                    "channels": [{"name": "beIN CONNECT Turkey", "slug": "bein-connect-turkey"}],
-                }]}],
-                "updated_at": "2026-07-05T10:00:00Z",
+                "competition": {"competition_id": "1", "competition": "Premier League", "slug": "premier-league", "country": "England"},
+                "fixtures": [{"fixture_id": "77", "team1_name": "Arsenal", "team2_name": "Chelsea"}],
             })
+        if path == "/v1/sport-snap/countries/brazil":
+            return _ok({"team": {"title": "Brazil", "slug": "brazil", "country": "Brazil", "nat_team": "1"}})
+        if path == "/v1/sport-snap/channels":
+            return _ok({
+                "channels": [{"channel_id": "9", "name": "beIN CONNECT Turkey", "slug": "bein-connect-turkey", "country": "Turkey"}],
+            })
+        if path == "/v1/sport-snap/channels/bein-connect-turkey/info":
+            return _ok({
+                "channel": {"channel_id": "9", "slug": "bein-connect-turkey", "name": "beIN CONNECT Turkey", "platform": "streaming"},
+                "tv_rights": [{"channel_id": "9", "name": "beIN Sports"}],
+            })
+        if path == "/v1/sport-snap/news":
+            return _ok({"articles": [{"article_id": "321", "title": "Transfer news", "slug": "transfer-news"}]})
+        if path == "/v1/sport-snap/search/all":
+            return _ok({"results": [{"type": "team", "url": "/teams/spain/barcelona/", "title": "Barcelona"}]})
+        if path == "/v1/sport-snap/player/messi/123":
+            return _ok({"profile": {"id": "123", "slug": "messi", "name": "Lionel Messi", "position": "Forward"}})
         return httpx.Response(500, json={"data": None, "is_success": False, "message": f"unexpected {path}", "response_code": 500})
 
     return handler, state
@@ -213,31 +212,27 @@ def test_default_version_is_stable_not_latest():
 # --------------------------------------------------------------------------
 
 
-def test_sport_snap_channel():
+def test_sport_snap_livescores():
     client, _ = _client()
-    ch = client.sport_snap.channel("bein-connect-turkey")
-    assert ch.slug == "bein-connect-turkey"
-    assert ch.broadcast_rights[0].competition == "England - Premier League"
-    assert ch.broadcast_rights[0].year_end == 2027
+    board = client.sport_snap.livescores()
+    assert board.sport == "soccer"
+    assert board.matches[0].game == "Brazil vs Norway"
+    assert board.matches[0].result == "2 - 1"
 
 
-def test_sport_snap_channel_schedule():
+def test_sport_snap_matches():
     client, _ = _client()
-    sched = client.sport_snap.channel_schedule("bein-connect-turkey")
-    assert sched.entries[0].match_id == 5542814
-    assert sched.entries[0].match_title == "Brazil vs Norway"
-    assert sched.entries[0].is_placeholder is False
-    assert sched.entries[0].kickoff_local == "10:00pm"
-    assert sched.entries[0].kickoff_raw == "10:00pm"
+    fx = client.sport_snap.matches("TR")
+    assert fx.competitions[0].competition == "Friendly"
+    assert fx.competitions[0].fixtures[0].team1_name == "Brazil"
 
 
 def test_sport_snap_match():
     client, _ = _client()
     match = client.sport_snap.match(5542814)
-    assert match.status == "finished"
-    assert match.score.home == 2 and match.score.away == 1
-    assert match.broadcasts[0].country_slug == "turkey"
-    assert match.broadcasts[0].channels[0].slug == "bein-connect-turkey"
+    assert match.competition.competition == "Friendly"
+    assert match.fixture.fixture_id == "5542814"
+    assert match.fixture.result == "2 - 1"
 
 
 def test_sport_snap_match_not_found():
@@ -246,26 +241,60 @@ def test_sport_snap_match_not_found():
         client.sport_snap.match(404)
 
 
-def test_sport_snap_country_channels():
+def test_sport_snap_competitions():
     client, _ = _client()
-    cc = client.sport_snap.country_channels("turkey")
-    assert cc.country == "Turkey"
-    assert cc.channels[0].slug == "bein-connect-turkey"
+    cat = client.sport_snap.competitions()
+    assert cat.competitions.comp_popular[0].name == "Premier League"
 
 
-def test_sport_snap_daily_schedule_accepts_date_object():
-    import datetime
-
+def test_sport_snap_competition():
     client, _ = _client()
-    day = client.sport_snap.daily_schedule(datetime.date(2026, 7, 5))
-    assert day.competitions[0].matches[0].title == "Brazil vs Norway"
-    # Same endpoint via a plain string.
-    assert client.sport_snap.daily_schedule("2026-07-05").competitions[0].competition == "Friendly"
+    comp = client.sport_snap.competition("england", "premier-league")
+    assert comp.competition.slug == "premier-league"
+    assert comp.fixtures[0].team1_name == "Arsenal"
+
+
+def test_sport_snap_national_team():
+    client, _ = _client()
+    team = client.sport_snap.national_team("brazil")
+    assert team.team.title == "Brazil"
+
+
+def test_sport_snap_channels():
+    client, _ = _client()
+    chs = client.sport_snap.channels("TR")
+    assert chs.channels[0].slug == "bein-connect-turkey"
+
+
+def test_sport_snap_channel_info():
+    client, _ = _client()
+    info = client.sport_snap.channel_info("bein-connect-turkey")
+    assert info.channel.name == "beIN CONNECT Turkey"
+    assert info.tv_rights[0].name == "beIN Sports"
+
+
+def test_sport_snap_news():
+    client, _ = _client()
+    feed = client.sport_snap.news()
+    assert feed.articles[0].title == "Transfer news"
+
+
+def test_sport_snap_search_all():
+    client, _ = _client()
+    res = client.sport_snap.search_all("barcelona")
+    assert res.results[0].title == "Barcelona"
+    assert res.results[0].type == "team"
+
+
+def test_sport_snap_player():
+    client, _ = _client()
+    player = client.sport_snap.player("messi", 123)
+    assert player.profile.name == "Lionel Messi"
 
 
 def test_sport_snap_version_pinning():
     client, _ = _client()
-    assert client.sport_snap.v1.channel("bein-connect-turkey").slug == "bein-connect-turkey"
+    assert client.sport_snap.v1.livescores().sport == "soccer"
     assert client.sport_snap.v1 is client.sport_snap.v1
 
 
@@ -339,8 +368,8 @@ def test_async_sport_snap_match():
         client, _ = _async_client()
         try:
             match = await client.sport_snap.match(5542814)
-            assert match.status == "finished"
-            assert match.home_team.name == "Brazil"
+            assert match.competition.competition == "Friendly"
+            assert match.fixture.fixture_id == "5542814"
         finally:
             await client.close()
 

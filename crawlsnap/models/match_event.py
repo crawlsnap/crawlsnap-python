@@ -3,7 +3,7 @@
 """
     CrawlSnap API
 
-    CrawlSnap is a data intelligence platform. It delivers structured, on-demand data through fast, typed HTTP APIs you can call from any language. This reference covers authentication, the response envelope, error handling, and the available CrawlSnap data products:    - **VectorSnap** — reputation, detections, categories, and relationships     for url / hash / ip / domain.   - **PulseSnap** — threat-intelligence pulse (and sandbox) enrichment for     url / hash / ip / domain.   - **SubdoSnap** — paginated subdomain enumeration for a domain.   - **SportSnap** — live football (soccer) TV listings: channel metadata     and broadcast schedules, match details with per-country coverage     (score, events, statistics, and lineups for finished matches),     country channel directories, and daily schedules.  ## Authentication  Authenticate every request with your CrawlSnap API key, sent as a Bearer token in the `Authorization` header:      Authorization: Bearer sk-cs-...  Create and rotate keys from your dashboard. Treat the key like a password: it carries your full quota and must stay secret. Never embed it in client-side code or commit it to source control.  ## Response envelope  Every response — success or error — uses the same envelope:  ```json {   \"data\": { ... },          // payload on success, null on failure   \"is_success\": true,        // authoritative success flag   \"message\": \"Success\",     // human-readable summary   \"response_code\": 200       // mirrors the HTTP status code } ```  Always check `is_success` before reading `data`.  ## Status codes  HTTP status codes follow standard REST semantics; the body `response_code` mirrors the HTTP status.    - **200** — success, `data` populated.   - **400** — invalid input (malformed query or path parameter).   - **401** — missing or invalid API key.   - **402** — out of credits, or monthly quota exceeded.   - **403** — subscription is not active.   - **404** — no data found for the supplied identifier.   - **429** — daily request limit exceeded.   - **5xx** — server error, or the upstream enrichment service was     unavailable / timed out. 
+    CrawlSnap is a data intelligence platform. It delivers structured, on-demand data through fast, typed HTTP APIs you can call from any language. This reference covers authentication, the response envelope, error handling, and the available CrawlSnap data products:    - **VectorSnap** — reputation, detections, categories, and relationships     for url / hash / ip / domain.   - **PulseSnap** — threat-intelligence pulse (and sandbox) enrichment for     url / hash / ip / domain.   - **SubdoSnap** — paginated subdomain enumeration for a domain.   - **SportSnap** — live football (soccer) data: live scores with     in-match events, fixtures with per-region broadcast channels, match     details (lineups, events, statistics, per-country coverage),     competitions (fixtures, standings, top scorers, TV rights), teams,     TV channel directories, football news, search, and player profiles.  ## Authentication  Authenticate every request with your CrawlSnap API key, sent as a Bearer token in the `Authorization` header:      Authorization: Bearer sk-cs-...  Create and rotate keys from your dashboard. Treat the key like a password: it carries your full quota and must stay secret. Never embed it in client-side code or commit it to source control.  ## Response envelope  Every response — success or error — uses the same envelope:  ```json {   \"data\": { ... },          // payload on success, null on failure   \"is_success\": true,        // authoritative success flag   \"message\": \"Success\",     // human-readable summary   \"response_code\": 200       // mirrors the HTTP status code } ```  Always check `is_success` before reading `data`.  ## Status codes  HTTP status codes follow standard REST semantics; the body `response_code` mirrors the HTTP status.    - **200** — success, `data` populated.   - **400** — invalid input (malformed query or path parameter).   - **401** — missing or invalid API key.   - **402** — out of credits, or monthly quota exceeded.   - **403** — subscription is not active.   - **404** — no data found for the supplied identifier.   - **429** — daily request limit exceeded.   - **5xx** — server error, or the upstream enrichment service was     unavailable / timed out. 
 
     The version of the OpenAPI document: 1.0.0
     Contact: support@crawlsnap.com
@@ -18,7 +18,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
 from typing import Optional, Set
 from typing_extensions import Self
@@ -28,28 +28,20 @@ class MatchEvent(BaseModel):
     """
     MatchEvent
     """ # noqa: E501
-    minute: StrictStr = Field(description="Match minute as rendered, including stoppage notation, e.g. \"45+2\", \"120+5\".")
-    team: StrictStr
-    type: StrictStr
-    player: StrictStr = Field(description="For substitutions this is the player coming ON.")
-    player_out: Optional[StrictStr] = Field(default=None, description="Substitutions only; the player going off.")
-    assist: Optional[StrictStr] = Field(default=None, description="Goals only; assisting player when credited.")
-    running_score: Optional[StrictStr] = Field(default=None, description="Running score annotation after a goal, e.g. \"1 - 2\".")
-    __properties: ClassVar[List[str]] = ["minute", "team", "type", "player", "player_out", "assist", "running_score"]
-
-    @field_validator('team')
-    def team_validate_enum(cls, value):
-        """Validates the enum"""
-        if value not in set(['home', 'away']):
-            raise ValueError("must be one of enum values ('home', 'away')")
-        return value
-
-    @field_validator('type')
-    def type_validate_enum(cls, value):
-        """Validates the enum"""
-        if value not in set(['goal', 'own_goal', 'penalty_goal', 'yellow_card', 'red_card', 'substitution']):
-            raise ValueError("must be one of enum values ('goal', 'own_goal', 'penalty_goal', 'yellow_card', 'red_card', 'substitution')")
-        return value
+    type: Optional[StrictStr] = Field(default=None, description="goal, yellowcard, redcard, substitution, penalty, ...")
+    minute: Optional[StrictStr] = None
+    extra_min: Optional[StrictStr] = None
+    team: Optional[StrictStr] = Field(default=None, description="localteam or visitorteam.")
+    player: Optional[StrictStr] = None
+    player_id: Optional[StrictStr] = Field(default=None, alias="playerId")
+    result: Optional[StrictStr] = None
+    assist: Optional[StrictStr] = None
+    assist_id: Optional[StrictStr] = Field(default=None, alias="assistId")
+    player_in: Optional[StrictStr] = Field(default=None, alias="playerIn")
+    player_in_id: Optional[StrictStr] = Field(default=None, alias="playerInId")
+    player_out: Optional[StrictStr] = Field(default=None, alias="playerOut")
+    player_out_id: Optional[StrictStr] = Field(default=None, alias="playerOutId")
+    __properties: ClassVar[List[str]] = ["type", "minute", "extra_min", "team", "player", "playerId", "result", "assist", "assistId", "playerIn", "playerInId", "playerOut", "playerOutId"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -90,21 +82,6 @@ class MatchEvent(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # set to None if player_out (nullable) is None
-        # and model_fields_set contains the field
-        if self.player_out is None and "player_out" in self.model_fields_set:
-            _dict['player_out'] = None
-
-        # set to None if assist (nullable) is None
-        # and model_fields_set contains the field
-        if self.assist is None and "assist" in self.model_fields_set:
-            _dict['assist'] = None
-
-        # set to None if running_score (nullable) is None
-        # and model_fields_set contains the field
-        if self.running_score is None and "running_score" in self.model_fields_set:
-            _dict['running_score'] = None
-
         return _dict
 
     @classmethod
@@ -117,13 +94,19 @@ class MatchEvent(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "minute": obj.get("minute"),
-            "team": obj.get("team"),
             "type": obj.get("type"),
+            "minute": obj.get("minute"),
+            "extra_min": obj.get("extra_min"),
+            "team": obj.get("team"),
             "player": obj.get("player"),
-            "player_out": obj.get("player_out"),
+            "playerId": obj.get("playerId"),
+            "result": obj.get("result"),
             "assist": obj.get("assist"),
-            "running_score": obj.get("running_score")
+            "assistId": obj.get("assistId"),
+            "playerIn": obj.get("playerIn"),
+            "playerInId": obj.get("playerInId"),
+            "playerOut": obj.get("playerOut"),
+            "playerOutId": obj.get("playerOutId")
         })
         return _obj
 

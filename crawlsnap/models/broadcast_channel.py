@@ -3,7 +3,7 @@
 """
     CrawlSnap API
 
-    CrawlSnap is a data intelligence platform. It delivers structured, on-demand data through fast, typed HTTP APIs you can call from any language. This reference covers authentication, the response envelope, error handling, and the available CrawlSnap data products:    - **VectorSnap** — reputation, detections, categories, and relationships     for url / hash / ip / domain.   - **PulseSnap** — threat-intelligence pulse (and sandbox) enrichment for     url / hash / ip / domain.   - **SubdoSnap** — paginated subdomain enumeration for a domain.   - **SportSnap** — live football (soccer) TV listings: channel metadata     and broadcast schedules, match details with per-country coverage     (score, events, statistics, and lineups for finished matches),     country channel directories, and daily schedules.  ## Authentication  Authenticate every request with your CrawlSnap API key, sent as a Bearer token in the `Authorization` header:      Authorization: Bearer sk-cs-...  Create and rotate keys from your dashboard. Treat the key like a password: it carries your full quota and must stay secret. Never embed it in client-side code or commit it to source control.  ## Response envelope  Every response — success or error — uses the same envelope:  ```json {   \"data\": { ... },          // payload on success, null on failure   \"is_success\": true,        // authoritative success flag   \"message\": \"Success\",     // human-readable summary   \"response_code\": 200       // mirrors the HTTP status code } ```  Always check `is_success` before reading `data`.  ## Status codes  HTTP status codes follow standard REST semantics; the body `response_code` mirrors the HTTP status.    - **200** — success, `data` populated.   - **400** — invalid input (malformed query or path parameter).   - **401** — missing or invalid API key.   - **402** — out of credits, or monthly quota exceeded.   - **403** — subscription is not active.   - **404** — no data found for the supplied identifier.   - **429** — daily request limit exceeded.   - **5xx** — server error, or the upstream enrichment service was     unavailable / timed out. 
+    CrawlSnap is a data intelligence platform. It delivers structured, on-demand data through fast, typed HTTP APIs you can call from any language. This reference covers authentication, the response envelope, error handling, and the available CrawlSnap data products:    - **VectorSnap** — reputation, detections, categories, and relationships     for url / hash / ip / domain.   - **PulseSnap** — threat-intelligence pulse (and sandbox) enrichment for     url / hash / ip / domain.   - **SubdoSnap** — paginated subdomain enumeration for a domain.   - **SportSnap** — live football (soccer) data: live scores with     in-match events, fixtures with per-region broadcast channels, match     details (lineups, events, statistics, per-country coverage),     competitions (fixtures, standings, top scorers, TV rights), teams,     TV channel directories, football news, search, and player profiles.  ## Authentication  Authenticate every request with your CrawlSnap API key, sent as a Bearer token in the `Authorization` header:      Authorization: Bearer sk-cs-...  Create and rotate keys from your dashboard. Treat the key like a password: it carries your full quota and must stay secret. Never embed it in client-side code or commit it to source control.  ## Response envelope  Every response — success or error — uses the same envelope:  ```json {   \"data\": { ... },          // payload on success, null on failure   \"is_success\": true,        // authoritative success flag   \"message\": \"Success\",     // human-readable summary   \"response_code\": 200       // mirrors the HTTP status code } ```  Always check `is_success` before reading `data`.  ## Status codes  HTTP status codes follow standard REST semantics; the body `response_code` mirrors the HTTP status.    - **200** — success, `data` populated.   - **400** — invalid input (malformed query or path parameter).   - **401** — missing or invalid API key.   - **402** — out of credits, or monthly quota exceeded.   - **403** — subscription is not active.   - **404** — no data found for the supplied identifier.   - **429** — daily request limit exceeded.   - **5xx** — server error, or the upstream enrichment service was     unavailable / timed out. 
 
     The version of the OpenAPI document: 1.0.0
     Contact: support@crawlsnap.com
@@ -20,6 +20,7 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
+from crawlsnap.models.channel_platform import ChannelPlatform
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -28,9 +29,23 @@ class BroadcastChannel(BaseModel):
     """
     BroadcastChannel
     """ # noqa: E501
-    name: StrictStr
-    slug: Optional[StrictStr] = Field(default=None, description="Channel slug usable with `/api/v1/channels/{slug}`; null when the source did not link the channel.")
-    __properties: ClassVar[List[str]] = ["name", "slug"]
+    channel_id: Optional[StrictStr] = None
+    slug: Optional[StrictStr] = Field(default=None, description="Channel slug usable with `/api/v1/channels/{slug}/info`.")
+    name: Optional[StrictStr] = None
+    country: Optional[StrictStr] = Field(default=None, description="Pipe-delimited country list as sent by the source, e.g. `|United States|`.")
+    countries: Optional[StrictStr] = None
+    coverage: Optional[StrictStr] = None
+    betting: Optional[StrictStr] = None
+    mobile_url: Optional[StrictStr] = None
+    ios_url: Optional[StrictStr] = None
+    android_url: Optional[StrictStr] = None
+    blocked: Optional[StrictStr] = None
+    allowed: Optional[StrictStr] = None
+    stream_note: Optional[StrictStr] = None
+    note: Optional[StrictStr] = None
+    radio_url: Optional[StrictStr] = None
+    platforms: Optional[List[ChannelPlatform]] = None
+    __properties: ClassVar[List[str]] = ["channel_id", "slug", "name", "country", "countries", "coverage", "betting", "mobile_url", "ios_url", "android_url", "blocked", "allowed", "stream_note", "note", "radio_url", "platforms"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -71,11 +86,13 @@ class BroadcastChannel(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # set to None if slug (nullable) is None
-        # and model_fields_set contains the field
-        if self.slug is None and "slug" in self.model_fields_set:
-            _dict['slug'] = None
-
+        # override the default output from pydantic by calling `to_dict()` of each item in platforms (list)
+        _items = []
+        if self.platforms:
+            for _item_platforms in self.platforms:
+                if _item_platforms:
+                    _items.append(_item_platforms.to_dict())
+            _dict['platforms'] = _items
         return _dict
 
     @classmethod
@@ -88,8 +105,22 @@ class BroadcastChannel(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
+            "channel_id": obj.get("channel_id"),
+            "slug": obj.get("slug"),
             "name": obj.get("name"),
-            "slug": obj.get("slug")
+            "country": obj.get("country"),
+            "countries": obj.get("countries"),
+            "coverage": obj.get("coverage"),
+            "betting": obj.get("betting"),
+            "mobile_url": obj.get("mobile_url"),
+            "ios_url": obj.get("ios_url"),
+            "android_url": obj.get("android_url"),
+            "blocked": obj.get("blocked"),
+            "allowed": obj.get("allowed"),
+            "stream_note": obj.get("stream_note"),
+            "note": obj.get("note"),
+            "radio_url": obj.get("radio_url"),
+            "platforms": [ChannelPlatform.from_dict(_item) for _item in obj["platforms"]] if obj.get("platforms") is not None else None
         })
         return _obj
 

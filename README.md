@@ -86,7 +86,7 @@ Every method is a coroutine; `scan_iter` is an async generator (use `async for`)
 | `vector_snap` | `url` · `hash` · `ip` · `domain` | reputation, detections, categories, relationships |
 | `pulse_snap`  | `url` · `hash` · `ip` · `domain` | threat-intelligence pulse (and sandbox) summary |
 | `subdo_snap`  | `scan` · `scan_iter` | enumerated subdomains (paginated) |
-| `sport_snap`  | `channel` · `channel_schedule` · `match` · `country_channels` · `daily_schedule` | live football TV listings: channels, schedules, match details |
+| `sport_snap`  | `livescores` · `matches` · `match` · `competitions` · `competition` · `national_team` · `club_team` · `channels` · `channel_info` · `news` · `search_all` · `player` · … | football (soccer) data: live scores, fixtures, match detail, competitions, teams, TV channels, news, search, players |
 
 ```python
 url    = crawlsnap.vector_snap.url("https://example.com")
@@ -95,23 +95,34 @@ domain = crawlsnap.vector_snap.domain("google.com")
 
 pulse  = crawlsnap.pulse_snap.ip("8.8.8.8")
 
-channel  = crawlsnap.sport_snap.channel("bein-connect-turkey")
-schedule = crawlsnap.sport_snap.channel_schedule("bein-connect-turkey")
-match    = crawlsnap.sport_snap.match(5542814)
-channels = crawlsnap.sport_snap.country_channels("turkey")
-day      = crawlsnap.sport_snap.daily_schedule("2026-07-05")  # or datetime.date
+board   = crawlsnap.sport_snap.livescores()                       # live-score board
+fixtures = crawlsnap.sport_snap.matches("TR")                     # fixtures for a region
+match   = crawlsnap.sport_snap.match(5542814)                     # full match view
+league  = crawlsnap.sport_snap.competition("england", "premier-league")
+team    = crawlsnap.sport_snap.club_team("spain", "barcelona")
+results = crawlsnap.sport_snap.search_all("messi")                # url fields feed other calls
+player  = crawlsnap.sport_snap.player("messi", 123)
 ```
 
-Every method takes its lookup value as the first positional argument and
-accepts `raw_response=True` (see below).
+Every method takes its lookup value(s) as positional arguments and accepts
+`raw_response=True` (see below).
 
-`sport_snap` covers live football (soccer) TV listings: TV channel metadata
-and broadcast rights, channel broadcast schedules, match details with
-per-country broadcast coverage (score, events, statistics, and lineups for
-finished matches), country channel directories, and daily schedules grouped
-by competition. `match.status` is `scheduled`, `live`, or `finished` and
-discriminates how much of the payload is populated. Match ids are discovered
-via `daily_schedule` and `channel_schedule` entries.
+`sport_snap` is the football (soccer) data resource. It exposes the full source
+surface: live scores with in-match events (`livescores`), fixture lists
+(`matches`, `matches_extended`), single-match views (`match`, `match_extended`,
+`match_stats`, `match_commentaries`, `match_channels`, `match_extra_broadcasts`),
+the competition catalog and detail (`competitions`, `competition`,
+`competition_tables`, `competition_tv_rights`, `competition_twitter`), teams
+(`popular_teams`, `all_teams`, `national_team`, `club_team`), TV channel
+directories (`all_channels`, `channels`, `channel_info`, `channel_repeats`), a
+news feed (`news`, `news_by_tag`, `news_article`, `competition_news`,
+`national_team_news`, `club_team_news`), full-text search (`search_all`,
+`search_teams`, `search_competitions`, `search_matches`, `search_players`,
+`popular_searches`), and player profiles (`player`). Path segments (competition
+`country`/`slug`, team `country`/`team`, player `slug`/`id`) come from the `url`
+fields returned by list, search, and detail payloads. `iso_code` is an optional
+two-letter region code that resolves region-specific broadcast channels; pass
+`""` (the default) for the server default.
 
 ## API versioning
 

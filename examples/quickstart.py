@@ -43,3 +43,17 @@ except CrawlSnapError as e:
 print("subdomains     ->")
 for sub in crawlsnap.subdo_snap.scan_iter("example.com"):
     print("                 ", sub)
+
+# 7. SportSnap — football (soccer) data
+board = crawlsnap.sport_snap.livescores()
+print(f"livescores     -> {board.sport}, {len(board.matches)} match(es)")
+
+# Full-text search returns url fields that feed the other endpoints.
+hits = crawlsnap.sport_snap.search_all("barcelona")
+if hits.results:
+    top = hits.results[0]
+    print(f"search         -> {top.title} ({top.type}) {top.url}")
+
+# Competition detail (country/slug come from competition url fields).
+league = crawlsnap.sport_snap.competition("england", "premier-league")
+print(f"competition    -> {league.competition.competition}")
