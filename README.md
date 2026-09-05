@@ -206,6 +206,16 @@ while page.cursor:
     page = crawlsnap.subdo_snap.scan("example.com", cursor=page.cursor)
 ```
 
+`sport_snap.channel_repeats` returns one ~20-fixture page around the current
+date; walk forward (or backward) with its `fixtures_next` / `fixtures_prev`
+cursors — `None` means no further page:
+
+```python
+page = crawlsnap.sport_snap.channel_repeats("dazn-spain", "ES")
+while page.fixtures_next:
+    page = crawlsnap.sport_snap.channel_repeats("dazn-spain", "ES", cursor=page.fixtures_next)
+```
+
 ## Configuration
 
 The singleton is a thin layer over the `CrawlSnap` client. For multiple keys,

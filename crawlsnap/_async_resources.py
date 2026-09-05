@@ -435,13 +435,20 @@ class AsyncSportSnap(_AsyncResource):
         return await self._client._request(f"{self._base}/channels/{_seg(slug)}/info", _iso_params(iso_code), ChannelInfoData, raw_response=raw_response)
 
     @overload
-    async def channel_repeats(self, slug: str, iso_code: str = "", *, raw_response: Literal[False] = False) -> ChannelRepeatsData: ...
+    async def channel_repeats(self, slug: str, iso_code: str = "", *, cursor: Optional[str] = None, raw_response: Literal[False] = False) -> ChannelRepeatsData: ...
     @overload
-    async def channel_repeats(self, slug: str, iso_code: str = "", *, raw_response: Literal[True]) -> "RawResponse": ...
-    async def channel_repeats(self, slug: str, iso_code: str = "", *, raw_response: bool = False) -> Any:
-        """Channel's repeat/upcoming broadcast schedule with paging cursors. An
-        empty ``fixtures`` array is a valid result, not an error."""
-        return await self._client._request(f"{self._base}/channels/{_seg(slug)}/repeat", _iso_params(iso_code), ChannelRepeatsData, raw_response=raw_response)
+    async def channel_repeats(self, slug: str, iso_code: str = "", *, cursor: Optional[str] = None, raw_response: Literal[True]) -> "RawResponse": ...
+    async def channel_repeats(self, slug: str, iso_code: str = "", *, cursor: Optional[str] = None, raw_response: bool = False) -> Any:
+        """One ~20-fixture page of the channel's repeat/upcoming broadcast
+        schedule around the current date. ``fixtures_next`` / ``fixtures_prev``
+        are opaque paging cursors — pass one back as ``cursor`` to walk forward
+        or backward (``None`` means no further page). The region always comes
+        from ``iso_code``. An empty ``fixtures`` array is a valid result, not an
+        error."""
+        params = _iso_params(iso_code)
+        if cursor:
+            params["cursor"] = cursor
+        return await self._client._request(f"{self._base}/channels/{_seg(slug)}/repeat", params, ChannelRepeatsData, raw_response=raw_response)
 
     # -- News -----------------------------------------------------------
 

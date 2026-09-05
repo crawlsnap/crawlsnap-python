@@ -102,6 +102,11 @@ def _make_handler():
                 "channel": {"channel_id": "9", "slug": "bein-connect-turkey", "name": "beIN CONNECT Turkey", "platform": "streaming"},
                 "tv_rights": [{"channel_id": "9", "name": "beIN Sports"}],
             })
+        if path == "/v1/sport-snap/channels/bein-connect-turkey/repeat":
+            page = {"channel": {"slug": "bein-connect-turkey", "name": "beIN CONNECT Turkey"}}
+            if params.get("cursor") == "/channels/bein-connect-turkey/repeat/?direction=next&start=2":
+                return _ok({**page, "fixtures": [{"fixture_id": "2", "game": "B vs C"}], "fixtures_next": None, "fixtures_prev": "/channels/bein-connect-turkey/repeat/?direction=previous&start=1"})
+            return _ok({**page, "fixtures": [{"fixture_id": "1", "game": "A vs B"}], "fixtures_next": "/channels/bein-connect-turkey/repeat/?direction=next&start=2", "fixtures_prev": None})
         if path == "/v1/sport-snap/news":
             return _ok({"articles": [{"article_id": "321", "title": "Transfer news", "slug": "transfer-news"}]})
         if path == "/v1/sport-snap/search/all":
@@ -271,6 +276,16 @@ def test_sport_snap_channel_info():
     info = client.sport_snap.channel_info("bein-connect-turkey")
     assert info.channel.name == "beIN CONNECT Turkey"
     assert info.tv_rights[0].name == "beIN Sports"
+
+
+def test_sport_snap_channel_repeats_cursor_paging():
+    client, _ = _client()
+    first = client.sport_snap.channel_repeats("bein-connect-turkey", "TR")
+    assert first.fixtures[0].fixture_id == "1"
+    assert first.fixtures_prev is None
+    second = client.sport_snap.channel_repeats("bein-connect-turkey", "TR", cursor=first.fixtures_next)
+    assert second.fixtures[0].fixture_id == "2"
+    assert second.fixtures_next is None
 
 
 def test_sport_snap_news():

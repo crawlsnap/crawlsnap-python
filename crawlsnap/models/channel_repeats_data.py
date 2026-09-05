@@ -18,7 +18,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
 from crawlsnap.models.channel_info import ChannelInfo
 from crawlsnap.models.fixture_summary import FixtureSummary
@@ -32,8 +32,8 @@ class ChannelRepeatsData(BaseModel):
     """ # noqa: E501
     channel: ChannelInfo
     fixtures: List[FixtureSummary]
-    fixtures_next: Optional[StrictStr] = None
-    fixtures_prev: Optional[StrictStr] = None
+    fixtures_next: Optional[StrictStr] = Field(default=None, description="Opaque cursor for the next page (pass as `cursor`); null on the last page.")
+    fixtures_prev: Optional[StrictStr] = Field(default=None, description="Opaque cursor for the previous page (pass as `cursor`); null on the first page.")
     __properties: ClassVar[List[str]] = ["channel", "fixtures", "fixtures_next", "fixtures_prev"]
 
     model_config = ConfigDict(
