@@ -272,3 +272,11 @@ Run the tests:
 pip install -e ".[dev]"
 pytest
 ```
+
+## Changelog
+
+Release notes for every published version live in
+[CHANGELOG.md](https://github.com/crawlsnap/crawlsnap-python/blob/main/CHANGELOG.md)
+and are mirrored on the
+[GitHub Releases](https://github.com/crawlsnap/crawlsnap-python/releases) page.
+Each entry records the `crawlsnap-contracts` version it was generated from.

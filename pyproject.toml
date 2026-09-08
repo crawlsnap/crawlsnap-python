@@ -29,6 +29,11 @@ dev = ["pytest>=7.2", "mypy>=1.5"]
 [project.urls]
 Homepage = "https://crawlsnap.com"
 Documentation = "https://crawlsnap.com/docs"
+# "Changelog", "Source" and "Issues" are well-known PyPI labels: PyPI renders
+# them as dedicated links in the project sidebar.
+Changelog = "https://github.com/crawlsnap/crawlsnap-python/blob/main/CHANGELOG.md"
+Source = "https://github.com/crawlsnap/crawlsnap-python"
+Issues = "https://github.com/crawlsnap/crawlsnap-python/issues"
 
 [tool.hatch.version]
 path = "crawlsnap/_version.py"
