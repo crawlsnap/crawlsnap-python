@@ -18,22 +18,22 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from crawlsnap.models.news_list_data import NewsListData
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class SportSnapNewsListResponse(BaseModel):
+class SerpResult(BaseModel):
     """
-    SportSnapNewsListResponse
+    One organic search result.
     """ # noqa: E501
-    data: Optional[NewsListData] = None
-    is_success: StrictBool = Field(description="True only when `data` contains usable enrichment.")
-    message: StrictStr = Field(description="Human-readable summary of the outcome.")
-    response_code: StrictInt = Field(description="Mirrors the HTTP status code.")
-    __properties: ClassVar[List[str]] = ["data", "is_success", "message", "response_code"]
+    rank: Optional[StrictInt] = Field(default=None, description="1-based position on the requested page.")
+    title: Optional[StrictStr] = None
+    url: Optional[StrictStr] = Field(default=None, description="The real target URL, already unwrapped from Google's redirector. ")
+    domain: Optional[StrictStr] = Field(default=None, description="Host of `url`, for grouping and filtering.")
+    snippet: Optional[StrictStr] = Field(default=None, description="The text excerpt Google shows beneath the result.")
+    __properties: ClassVar[List[str]] = ["rank", "title", "url", "domain", "snippet"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -53,7 +53,7 @@ class SportSnapNewsListResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of SportSnapNewsListResponse from a JSON string"""
+        """Create an instance of SerpResult from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,14 +74,11 @@ class SportSnapNewsListResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of data
-        if self.data:
-            _dict['data'] = self.data.to_dict()
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of SportSnapNewsListResponse from a dict"""
+        """Create an instance of SerpResult from a dict"""
         if obj is None:
             return None
 
@@ -89,10 +86,11 @@ class SportSnapNewsListResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "data": NewsListData.from_dict(obj["data"]) if obj.get("data") is not None else None,
-            "is_success": obj.get("is_success"),
-            "message": obj.get("message"),
-            "response_code": obj.get("response_code")
+            "rank": obj.get("rank"),
+            "title": obj.get("title"),
+            "url": obj.get("url"),
+            "domain": obj.get("domain"),
+            "snippet": obj.get("snippet")
         })
         return _obj
 

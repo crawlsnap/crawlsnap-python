@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, Optional, overload
 
 from typing_extensions import Literal
 
-from ._resources import _iso_params, _seg, _start_params
+from ._resources import _iso_params, _seg, _serp_params, _start_params
 from crawlsnap.models.all_teams_data import AllTeamsData
 from crawlsnap.models.channel_info_data import ChannelInfoData
 from crawlsnap.models.channel_repeats_data import ChannelRepeatsData
@@ -38,6 +38,7 @@ from crawlsnap.models.pulse_hash_scan_data import PulseHashScanData
 from crawlsnap.models.pulse_ip_scan_data import PulseIpScanData
 from crawlsnap.models.pulse_url_scan_data import PulseUrlScanData
 from crawlsnap.models.search_data import SearchData
+from crawlsnap.models.serp_search_data import SerpSearchData
 from crawlsnap.models.subdo_snap_scan_data import SubdoSnapScanData
 from crawlsnap.models.team_detail_data import TeamDetailData
 
@@ -570,3 +571,85 @@ class AsyncSportSnap(_AsyncResource):
         ``slug``/``id`` pair comes from player ``url`` values in search results,
         lineups, and squads."""
         return await self._client._request(f"{self._base}/player/{_seg(slug)}/{int(id)}", {}, PlayerData, raw_response=raw_response)
+
+
+# --------------------------------------------------------------------------
+# SerpApi
+# --------------------------------------------------------------------------
+
+
+class AsyncSerpApi(_AsyncResource):
+    """Google search results (SERP).
+
+    A direct call uses the stable default version; pin explicitly via
+    :attr:`v1`."""
+
+    @property
+    def v1(self) -> "AsyncSerpApi":
+        return self._pinned("v1")
+
+    @overload
+    async def search(
+        self,
+        query: str,
+        *,
+        count: Optional[int] = None,
+        page: Optional[int] = None,
+        language: Optional[str] = None,
+        country: Optional[str] = None,
+        safe: Optional[bool] = None,
+        time_range: Optional[str] = None,
+        site: Optional[str] = None,
+        filetype: Optional[str] = None,
+        raw_response: Literal[False] = False,
+    ) -> SerpSearchData: ...
+    @overload
+    async def search(
+        self,
+        query: str,
+        *,
+        count: Optional[int] = None,
+        page: Optional[int] = None,
+        language: Optional[str] = None,
+        country: Optional[str] = None,
+        safe: Optional[bool] = None,
+        time_range: Optional[str] = None,
+        site: Optional[str] = None,
+        filetype: Optional[str] = None,
+        raw_response: Literal[True],
+    ) -> "RawResponse": ...
+    async def search(
+        self,
+        query: str,
+        *,
+        count: Optional[int] = None,
+        page: Optional[int] = None,
+        language: Optional[str] = None,
+        country: Optional[str] = None,
+        safe: Optional[bool] = None,
+        time_range: Optional[str] = None,
+        site: Optional[str] = None,
+        filetype: Optional[str] = None,
+        raw_response: bool = False,
+    ) -> Any:
+        """Run one Google search and return the organic results of a single
+        result page, ranked, plus the related searches Google suggests.
+
+        ``results[].url`` is the real target URL, already unwrapped from
+        Google's redirector.
+
+        One call returns one page (about ten results). Ask for ``page=2``
+        rather than a larger ``count``: ``count`` caps the results parsed out
+        of the page you requested, it does not fetch more of them.
+
+        ``language`` and ``country`` are two-letter codes (``"en"``, ``"us"``).
+        ``time_range`` is one of ``"day"``, ``"week"``, ``"month"``,
+        ``"year"``. ``site`` restricts to one domain (subdomains included) and
+        ``filetype`` to one file type.
+        """
+        return await self._client._request(
+            f"/{self._version}/serp/search",
+            _serp_params(query, count, page, language, country, safe, time_range, site, filetype),
+            SerpSearchData,
+            raw_response=raw_response,
+        )

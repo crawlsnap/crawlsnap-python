@@ -4,7 +4,7 @@
 transient failures with exponential backoff, unwraps the ``BaseResponse``
 envelope, and raises typed exceptions. Resource groups are exposed as
 attributes: ``client.vector_snap``, ``client.pulse_snap``,
-``client.subdo_snap``, ``client.sport_snap``.
+``client.subdo_snap``, ``client.sport_snap``, ``client.serp_api``.
 
 For an awaitable variant with the same surface, see
 :class:`crawlsnap.AsyncCrawlSnap`.
@@ -29,7 +29,7 @@ from ._base import (
     process_response,
 )
 from ._exceptions import APIConnectionError, APITimeoutError, CrawlSnapError
-from ._resources import PulseSnap, SportSnap, SubdoSnap, VectorSnap
+from ._resources import PulseSnap, SerpApi, SportSnap, SubdoSnap, VectorSnap
 
 __all__ = ["CrawlSnap", "RawResponse"]
 
@@ -83,6 +83,7 @@ class CrawlSnap:
         self.pulse_snap = PulseSnap(self)
         self.subdo_snap = SubdoSnap(self)
         self.sport_snap = SportSnap(self)
+        self.serp_api = SerpApi(self)
 
     # -- public lifecycle ------------------------------------------------
 

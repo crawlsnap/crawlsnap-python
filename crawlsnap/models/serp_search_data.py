@@ -18,22 +18,24 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from crawlsnap.models.news_list_data import NewsListData
+from crawlsnap.models.serp_result import SerpResult
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class SportSnapNewsListResponse(BaseModel):
+class SerpSearchData(BaseModel):
     """
-    SportSnapNewsListResponse
+    Results of a single search.
     """ # noqa: E501
-    data: Optional[NewsListData] = None
-    is_success: StrictBool = Field(description="True only when `data` contains usable enrichment.")
-    message: StrictStr = Field(description="Human-readable summary of the outcome.")
-    response_code: StrictInt = Field(description="Mirrors the HTTP status code.")
-    __properties: ClassVar[List[str]] = ["data", "is_success", "message", "response_code"]
+    query: Optional[StrictStr] = Field(default=None, description="The query as it was actually sent, including any `site:` or `filetype:` operator added from the parameters. ")
+    page: Optional[StrictInt] = Field(default=None, description="The result page these results come from.")
+    engine: Optional[StrictStr] = Field(default=None, description="Search engine that produced the results.")
+    results: Optional[List[SerpResult]] = Field(default=None, description="Organic results, in rank order.")
+    suggestions: Optional[List[StrictStr]] = Field(default=None, description="Related searches suggested for the query.")
+    elapsed_ms: Optional[StrictInt] = Field(default=None, description="Server-side time spent producing this response.")
+    __properties: ClassVar[List[str]] = ["query", "page", "engine", "results", "suggestions", "elapsed_ms"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -53,7 +55,7 @@ class SportSnapNewsListResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of SportSnapNewsListResponse from a JSON string"""
+        """Create an instance of SerpSearchData from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,14 +76,18 @@ class SportSnapNewsListResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of data
-        if self.data:
-            _dict['data'] = self.data.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of each item in results (list)
+        _items = []
+        if self.results:
+            for _item_results in self.results:
+                if _item_results:
+                    _items.append(_item_results.to_dict())
+            _dict['results'] = _items
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of SportSnapNewsListResponse from a dict"""
+        """Create an instance of SerpSearchData from a dict"""
         if obj is None:
             return None
 
@@ -89,10 +95,12 @@ class SportSnapNewsListResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "data": NewsListData.from_dict(obj["data"]) if obj.get("data") is not None else None,
-            "is_success": obj.get("is_success"),
-            "message": obj.get("message"),
-            "response_code": obj.get("response_code")
+            "query": obj.get("query"),
+            "page": obj.get("page"),
+            "engine": obj.get("engine"),
+            "results": [SerpResult.from_dict(_item) for _item in obj["results"]] if obj.get("results") is not None else None,
+            "suggestions": obj.get("suggestions"),
+            "elapsed_ms": obj.get("elapsed_ms")
         })
         return _obj
 

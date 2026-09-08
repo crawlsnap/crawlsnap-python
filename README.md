@@ -87,6 +87,7 @@ Every method is a coroutine; `scan_iter` is an async generator (use `async for`)
 | `pulse_snap`  | `url` · `hash` · `ip` · `domain` | threat-intelligence pulse (and sandbox) summary |
 | `subdo_snap`  | `scan` · `scan_iter` | enumerated subdomains (paginated) |
 | `sport_snap`  | `livescores` · `matches` · `match` · `competitions` · `competition` · `national_team` · `club_team` · `channels` · `channel_info` · `news` · `search_all` · `player` · … | football (soccer) data: live scores, fixtures, match detail, competitions, teams, TV channels, news, search, players |
+| `serp_api`    | `search` | ranked Google search results with real target URLs, plus related searches |
 
 ```python
 url    = crawlsnap.vector_snap.url("https://example.com")
@@ -102,6 +103,10 @@ league  = crawlsnap.sport_snap.competition("england", "premier-league")
 team    = crawlsnap.sport_snap.club_team("spain", "barcelona")
 results = crawlsnap.sport_snap.search_all("messi")                # url fields feed other calls
 player  = crawlsnap.sport_snap.player("messi", 123)
+
+serp    = crawlsnap.serp_api.search("kubernetes operator")   # ranked Google results
+for hit in serp.results:
+    print(hit.rank, hit.domain, hit.url)
 ```
 
 Every method takes its lookup value(s) as positional arguments and accepts
@@ -123,6 +128,25 @@ news feed (`news`, `news_by_tag`, `news_article`, `competition_news`,
 fields returned by list, search, and detail payloads. `iso_code` is an optional
 two-letter region code that resolves region-specific broadcast channels; pass
 `""` (the default) for the server default.
+
+`serp_api.search` runs one Google search and returns a single result page:
+ranked organic results plus the related searches Google suggests. Each result's
+`url` is the real target URL — never a search-engine redirector — so you can
+follow or store it directly. Refine with `count`, `page`, `language`, `country`,
+`safe`, `time_range`, `site` and `filetype`; anything you leave out keeps the
+API's own default. One call is one page of about ten results, so ask for
+`page=2` rather than a larger `count` — `count` caps what is parsed out of the
+page you requested, it does not fetch more of them.
+
+```python
+page = crawlsnap.serp_api.search(
+    "actions", site="github.com", time_range="month", count=20
+)
+print(page.query, page.elapsed_ms)
+for hit in page.results:
+    print(f"{hit.rank}. {hit.title} — {hit.url}")
+print("related:", page.suggestions)
+```
 
 ## API versioning
 

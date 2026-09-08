@@ -15,6 +15,23 @@ Releases before 0.8.0 are not listed here; see the
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-08
+
+Contract: `crawlsnap-contracts` v0.12.0
+
+### Added
+
+- **SerpApi** — new `serp_api` resource (sync and async) with a single method,
+  `search(query, *, count, page, language, country, safe, time_range, site,
+  filetype)`, returning the typed `SerpSearchData`: ranked Google results for
+  one result page plus the related searches Google suggests. Each result's
+  `url` is the real target URL, already unwrapped from Google's redirector.
+  Available as `crawlsnap.serp_api` on the module singleton, `client.serp_api`
+  on an explicit client, and `serp_api.v1` for version pinning.
+
+  Refinements left unset are omitted from the request so the API's own defaults
+  apply — the SDK does not pin a default the API is free to move.
+
 ## [0.8.0] - 2026-09-05
 
 Contract: `crawlsnap-contracts` v0.11.0

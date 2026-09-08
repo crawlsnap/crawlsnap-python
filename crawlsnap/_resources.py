@@ -1,5 +1,5 @@
 """Resource groups exposed on the client: ``vector_snap``, ``pulse_snap``,
-``subdo_snap``, ``sport_snap``. Each method submits one lookup and returns the
+``subdo_snap``, ``sport_snap``, ``serp_api``. Each method submits one lookup and returns the
 typed payload (the unwrapped ``data``), or raises a typed exception.
 
 Per-API versioning (version is data, not a class hierarchy)
@@ -60,6 +60,7 @@ from crawlsnap.models.pulse_hash_scan_data import PulseHashScanData
 from crawlsnap.models.pulse_ip_scan_data import PulseIpScanData
 from crawlsnap.models.pulse_url_scan_data import PulseUrlScanData
 from crawlsnap.models.search_data import SearchData
+from crawlsnap.models.serp_search_data import SerpSearchData
 from crawlsnap.models.subdo_snap_scan_data import SubdoSnapScanData
 from crawlsnap.models.team_detail_data import TeamDetailData
 
@@ -621,3 +622,119 @@ class SportSnap(_Resource):
         ``slug``/``id`` pair comes from player ``url`` values in search results,
         lineups, and squads."""
         return self._client._request(f"{self._base}/player/{_seg(slug)}/{int(id)}", {}, PlayerData, raw_response=raw_response)
+
+
+# --------------------------------------------------------------------------
+# SerpApi
+# --------------------------------------------------------------------------
+
+
+def _serp_params(
+    query: str,
+    count: Optional[int],
+    page: Optional[int],
+    language: Optional[str],
+    country: Optional[str],
+    safe: Optional[bool],
+    time_range: Optional[str],
+    site: Optional[str],
+    filetype: Optional[str],
+) -> Dict[str, Any]:
+    """Query values for a SERP search. Every refinement is omitted when left as
+    ``None`` so the API's own defaults apply — sending ``count=10`` explicitly
+    would pin a default the API is free to move."""
+    params: Dict[str, Any] = {"q": query}
+    if count is not None:
+        params["count"] = count
+    if page is not None:
+        params["page"] = page
+    if language is not None:
+        params["language"] = language
+    if country is not None:
+        params["country"] = country
+    if safe is not None:
+        params["safe"] = "true" if safe else "false"
+    if time_range is not None:
+        params["time_range"] = time_range
+    if site is not None:
+        params["site"] = site
+    if filetype is not None:
+        params["filetype"] = filetype
+    return params
+
+
+class SerpApi(_Resource):
+    """Google search results (SERP).
+
+    A direct call uses the stable default version; pin explicitly via
+    :attr:`v1`."""
+
+    @property
+    def v1(self) -> "SerpApi":
+        return self._pinned("v1")
+
+    @overload
+    def search(
+        self,
+        query: str,
+        *,
+        count: Optional[int] = None,
+        page: Optional[int] = None,
+        language: Optional[str] = None,
+        country: Optional[str] = None,
+        safe: Optional[bool] = None,
+        time_range: Optional[str] = None,
+        site: Optional[str] = None,
+        filetype: Optional[str] = None,
+        raw_response: Literal[False] = False,
+    ) -> SerpSearchData: ...
+    @overload
+    def search(
+        self,
+        query: str,
+        *,
+        count: Optional[int] = None,
+        page: Optional[int] = None,
+        language: Optional[str] = None,
+        country: Optional[str] = None,
+        safe: Optional[bool] = None,
+        time_range: Optional[str] = None,
+        site: Optional[str] = None,
+        filetype: Optional[str] = None,
+        raw_response: Literal[True],
+    ) -> "RawResponse": ...
+    def search(
+        self,
+        query: str,
+        *,
+        count: Optional[int] = None,
+        page: Optional[int] = None,
+        language: Optional[str] = None,
+        country: Optional[str] = None,
+        safe: Optional[bool] = None,
+        time_range: Optional[str] = None,
+        site: Optional[str] = None,
+        filetype: Optional[str] = None,
+        raw_response: bool = False,
+    ) -> Any:
+        """Run one Google search and return the organic results of a single
+        result page, ranked, plus the related searches Google suggests.
+
+        ``results[].url`` is the real target URL, already unwrapped from
+        Google's redirector.
+
+        One call returns one page (about ten results). Ask for ``page=2``
+        rather than a larger ``count``: ``count`` caps the results parsed out
+        of the page you requested, it does not fetch more of them.
+
+        ``language`` and ``country`` are two-letter codes (``"en"``, ``"us"``).
+        ``time_range`` is one of ``"day"``, ``"week"``, ``"month"``,
+        ``"year"``. ``site`` restricts to one domain (subdomains included) and
+        ``filetype`` to one file type.
+        """
+        return self._client._request(
+            f"/{self._version}/serp/search",
+            _serp_params(query, count, page, language, country, safe, time_range, site, filetype),
+            SerpSearchData,
+            raw_response=raw_response,
+        )

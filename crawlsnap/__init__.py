@@ -76,12 +76,14 @@ from crawlsnap.models.news_list_data import NewsListData
 from crawlsnap.models.player_data import PlayerData
 from crawlsnap.models.popular_teams_data import PopularTeamsData
 from crawlsnap.models.search_data import SearchData
+from crawlsnap.models.serp_result import SerpResult
+from crawlsnap.models.serp_search_data import SerpSearchData
 from crawlsnap.models.team_detail_data import TeamDetailData
 
 _default_client: Optional[CrawlSnap] = None
 
 # Resource names resolved lazily against the singleton (see __getattr__).
-_RESOURCE_NAMES = ("vector_snap", "pulse_snap", "subdo_snap", "sport_snap")
+_RESOURCE_NAMES = ("vector_snap", "pulse_snap", "subdo_snap", "sport_snap", "serp_api")
 
 
 def init(api_key: Optional[str] = None, **kwargs: Any) -> CrawlSnap:
@@ -162,4 +164,7 @@ __all__ = [
     "NewsDetailData",
     "SearchData",
     "PlayerData",
+    # SerpApi response models
+    "SerpSearchData",
+    "SerpResult",
 ]

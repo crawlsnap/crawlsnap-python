@@ -27,6 +27,7 @@ import httpx
 
 from ._async_resources import (
     AsyncPulseSnap,
+    AsyncSerpApi,
     AsyncSportSnap,
     AsyncSubdoSnap,
     AsyncVectorSnap,
@@ -94,6 +95,7 @@ class AsyncCrawlSnap:
         self.pulse_snap = AsyncPulseSnap(self)
         self.subdo_snap = AsyncSubdoSnap(self)
         self.sport_snap = AsyncSportSnap(self)
+        self.serp_api = AsyncSerpApi(self)
 
     # -- public lifecycle ------------------------------------------------
 

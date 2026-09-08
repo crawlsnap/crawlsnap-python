@@ -20,16 +20,16 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from crawlsnap.models.news_list_data import NewsListData
+from crawlsnap.models.serp_search_data import SerpSearchData
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class SportSnapNewsListResponse(BaseModel):
+class SerpSearchResponse(BaseModel):
     """
-    SportSnapNewsListResponse
+    SerpSearchResponse
     """ # noqa: E501
-    data: Optional[NewsListData] = None
+    data: Optional[SerpSearchData] = None
     is_success: StrictBool = Field(description="True only when `data` contains usable enrichment.")
     message: StrictStr = Field(description="Human-readable summary of the outcome.")
     response_code: StrictInt = Field(description="Mirrors the HTTP status code.")
@@ -53,7 +53,7 @@ class SportSnapNewsListResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of SportSnapNewsListResponse from a JSON string"""
+        """Create an instance of SerpSearchResponse from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -81,7 +81,7 @@ class SportSnapNewsListResponse(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of SportSnapNewsListResponse from a dict"""
+        """Create an instance of SerpSearchResponse from a dict"""
         if obj is None:
             return None
 
@@ -89,7 +89,7 @@ class SportSnapNewsListResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "data": NewsListData.from_dict(obj["data"]) if obj.get("data") is not None else None,
+            "data": SerpSearchData.from_dict(obj["data"]) if obj.get("data") is not None else None,
             "is_success": obj.get("is_success"),
             "message": obj.get("message"),
             "response_code": obj.get("response_code")

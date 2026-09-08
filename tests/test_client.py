@@ -34,7 +34,7 @@ def _err(status: int, message: str) -> httpx.Response:
 
 
 def _make_handler():
-    state = {"url_calls": 0}
+    state = {"url_calls": 0, "serp_params": {}}
 
     def handler(request: httpx.Request) -> httpx.Response:
         path = request.url.path
@@ -111,6 +111,22 @@ def _make_handler():
             return _ok({"articles": [{"article_id": "321", "title": "Transfer news", "slug": "transfer-news"}]})
         if path == "/v1/sport-snap/search/all":
             return _ok({"results": [{"type": "team", "url": "/teams/spain/barcelona/", "title": "Barcelona"}]})
+        if path == "/v1/serp/search":
+            state["serp_params"] = params
+            return _ok({
+                "query": params.get("q"),
+                "page": int(params.get("page", 1)),
+                "engine": "google",
+                "results": [{
+                    "rank": 1,
+                    "title": "Operator pattern - Kubernetes",
+                    "url": "https://kubernetes.io/docs/concepts/extend-kubernetes/operator/",
+                    "domain": "kubernetes.io",
+                    "snippet": "Operators are software extensions to Kubernetes ...",
+                }],
+                "suggestions": ["kubernetes operator sdk"],
+                "elapsed_ms": 912,
+            })
         if path == "/v1/sport-snap/player/messi/123":
             return _ok({"profile": {"id": "123", "slug": "messi", "name": "Lionel Messi", "position": "Forward"}})
         return httpx.Response(500, json={"data": None, "is_success": False, "message": f"unexpected {path}", "response_code": 500})
@@ -400,5 +416,59 @@ def test_async_context_manager():
             api_key="sk-cs-test", max_retries=0, transport=httpx.MockTransport(handler)
         ) as client:
             assert (await client.vector_snap.ip("8.8.8.8")).as_owner == "GOOGLE"
+
+    asyncio.run(run())
+
+
+# --------------------------------------------------------------------------
+# SerpApi
+# --------------------------------------------------------------------------
+
+
+def test_serp_api_search():
+    client, state = _client()
+    page = client.serp_api.search("kubernetes operator")
+    assert page.engine == "google"
+    assert page.results[0].rank == 1
+    assert page.results[0].domain == "kubernetes.io"
+    # The target URL is real, never a search-engine redirector.
+    assert page.results[0].url.startswith("https://kubernetes.io/")
+    assert page.suggestions == ["kubernetes operator sdk"]
+    # Unset refinements are omitted so the API's own defaults apply.
+    assert state["serp_params"] == {"q": "kubernetes operator"}
+
+
+def test_serp_api_search_refinements_are_sent():
+    client, state = _client()
+    client.serp_api.search(
+        "actions",
+        count=20,
+        page=2,
+        language="de",
+        country="de",
+        safe=True,
+        time_range="month",
+        site="github.com",
+        filetype="pdf",
+    )
+    assert state["serp_params"] == {
+        "q": "actions", "count": "20", "page": "2", "language": "de", "country": "de",
+        "safe": "true", "time_range": "month", "site": "github.com", "filetype": "pdf",
+    }
+
+
+def test_serp_api_version_pinning():
+    client, _ = _client()
+    assert client.serp_api.v1._version == "v1"
+
+
+def test_async_serp_api_search():
+    async def run():
+        client, _ = _async_client()
+        try:
+            page = await client.serp_api.search("kubernetes operator")
+            assert page.results[0].domain == "kubernetes.io"
+        finally:
+            await client.close()
 
     asyncio.run(run())
